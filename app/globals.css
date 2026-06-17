@@ -1,0 +1,50 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --cream: #f1f3f3;
+  --black: #0e0c0a;
+  --muted: #6c6662;
+  --taupe: #827971;
+  --stone: #a5a4a1;
+  --olive-dark: #534c29;
+  --olive: #8d8c59;
+  --bronze: #926c30;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  background: var(--black);
+  color: var(--cream);
+}
+
+::selection {
+  background: var(--olive);
+  color: var(--black);
+}
+
+.noise {
+  background-image: radial-gradient(rgba(241, 243, 243, 0.08) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+.chart-line {
+  stroke-dasharray: 920;
+  stroke-dashoffset: 920;
+  animation: draw 2.2s ease forwards;
+}
+
+@keyframes draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
