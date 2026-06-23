@@ -41,18 +41,18 @@ export const modules = [
 ];
 
 export const features = [
-  "Live class interaktif",
-  "Recording semua sesi",
+  "Interactive live classes",
+  "Session recordings",
   "Private community",
-  "Template trading plan",
-  "Worksheet risk management",
-  "Studi kasus real market",
+  "Trading plan templates",
+  "Risk management worksheets",
+  "Real-market case studies",
 ];
 
 export const metrics = [
-  ["12+", "Module belajar step-by-step"],
-  ["8x", "Live class dan Q&A"],
-  ["0", "Janji profit atau sinyal instan"],
+  ["53", "Total cohorts"],
+  ["897", "Total members"],
+  ["2025", "Active since"],
 ];
 
 export const faqs = [

@@ -12,7 +12,10 @@ export function Method() {
         </div>
         <div className="rounded-[44px] border border-white/10 bg-white/[0.04] p-8 md:p-12">
           <p className="text-xl leading-9 text-[#A5A4A1]">
-            Program ini membantu peserta memahami cara membaca market, menyusun rule entry, membatasi risiko, dan mengevaluasi keputusan melalui jurnal. Tujuannya bukan membuat kamu mengejar profit cepat, tapi membangun proses trading yang lebih disiplin.
+            This program helps members learn how to read the market, build
+            clear entry rules, manage risk, and review every decision through a
+            trading journal. The goal is not to chase quick profits, but to
+            develop a disciplined and repeatable trading process.
           </p>
           <div className="mt-10 grid gap-4 md:grid-cols-2">
             {features.slice(0, 4).map((feature) => (
