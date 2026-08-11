@@ -14,11 +14,11 @@ export function Hero() {
                     <div>
                         <div className="mb-7 inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-[#A5A4A1] shadow-glow">
                             <span className="h-2 w-2 rounded-full bg-[#8D8C59]" />
-                            New batch open • Live online class
+                            Registration Open • Live Online Classes
                         </div>
 
                         <h1 className="max-w-5xl text-6xl font-semibold leading-[0.9] tracking-normal md:text-[112px] lg:text-[132px]">
-                            Learn Trading With Kafeinmatcha
+                            Build Your Trading Edge with Kafeinmatcha
                         </h1>
 
                         <div className="mt-7 max-w-4xl">
@@ -44,25 +44,25 @@ export function Hero() {
 
                         <div className="mt-8  max-w-3xl gap-6 md:grid-cols-[1fr_0.8fr] md:items-end">
                             <p className="text-lg leading-8 text-[#A5A4A1] md:text-xl">
-                                A structured trading program designed to help
-                                beginners understand the market, manage risk,
-                                and build a clear trading plan without relying
-                                on signals.
+                                A structured program designed to help you read
+                                the market, master risk management, and build a
+                                solid trading plan. Start trading independently
+                                no more relying on signals.
                             </p>
                         </div>
                         <div className="mt-8 flex flex-col gap-3 md:flex-row md:items-center">
                             <div className="flex gap-3 md:justify-end">
                                 <a
-                                    href="#harga"
+                                    href="#pricing"
                                     className="rounded-full flex items-center gap-2 bg-[#F1F3F3] px-7 py-4 text-sm font-extrabold text-[#0E0C0A] transition hover:bg-white"
                                 >
-                                    Enroll Now
+                                    Join the Batch
                                 </a>
                                 <a
-                                    href="#kurikulum"
+                                    href="#inside-the-lab"
                                     className="rounded-full flex items-center gap-2 border border-white/15 px-7 py-4 text-sm font-bold text-[#F1F3F3] transition hover:bg-white/10"
                                 >
-                                    View Curriculum
+                                    Explore Curriculum
                                 </a>
                             </div>
                         </div>

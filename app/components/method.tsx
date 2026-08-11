@@ -2,7 +2,7 @@ import { features } from "../data";
 
 export function Method() {
   return (
-    <section id="metode" className="relative z-10 px-4 py-20 md:px-8">
+    <section id="method" className="relative z-10 px-4 py-20 md:px-8">
       <div className="mx-auto grid max-w-7xl gap-5 lg:grid-cols-[0.95fr_1.05fr]">
         <div className="rounded-[44px] border border-white/10 bg-[#F1F3F3] p-8 text-[#0E0C0A] md:p-12">
           <p className="text-sm font-bold uppercase tracking-[0.28em] text-[#534C29]">Method</p>

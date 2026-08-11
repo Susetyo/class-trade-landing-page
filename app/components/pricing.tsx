@@ -3,7 +3,7 @@ import { SectionHeading } from "./section-heading";
 
 export function Pricing() {
   return (
-    <section id="harga" className="relative z-10 px-4 py-20 md:px-8">
+    <section id="pricing" className="relative z-10 px-4 py-20 md:px-8">
       <div className="mx-auto max-w-7xl rounded-[48px] border border-white/10 bg-[#F1F3F3] p-6 text-[#0E0C0A] md:p-10 lg:p-14">
         <div className="grid gap-10 lg:grid-cols-[1fr_420px] lg:items-center">
           <SectionHeading
@@ -24,7 +24,7 @@ export function Pricing() {
                 <li key={feature}>✓ {feature}</li>
               ))}
             </ul>
-            <a href="mailto:hello@synextrade.id" className="mt-8 block rounded-full bg-[#F1F3F3] px-8 py-4 text-center font-extrabold text-[#0E0C0A] transition hover:bg-white">
+            <a href="mailto:hello@kafeinmatcha.academy" className="mt-8 block rounded-full bg-[#F1F3F3] px-8 py-4 text-center font-extrabold text-[#0E0C0A] transition hover:bg-white">
               Daftar via Email
             </a>
           </div>

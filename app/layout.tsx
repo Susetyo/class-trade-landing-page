@@ -9,9 +9,9 @@ const manrope = Manrope({
 });
 
 export const metadata: Metadata = {
-  title: "Synex Trade Academy — Kelas Trading Terstruktur",
+  title: "Kafeinmatcha Academy",
   description:
-    "Landing page kelas trading premium dengan pendekatan edukasi, risk management, dan trading plan.",
+    "Structured live online trading classes focused on market reading, risk management, and independent trading plans.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

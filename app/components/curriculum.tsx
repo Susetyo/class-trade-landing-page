@@ -2,7 +2,7 @@ import { modules } from "../data";
 
 export function Curriculum() {
     return (
-        <section id="kurikulum" className="relative z-10 px-4 py-20 md:px-8">
+        <section id="inside-the-lab" className="relative z-10 px-4 py-20 md:px-8">
             <div className="mx-auto max-w-7xl">
                 <div className="mb-12 flex flex-col justify-between gap-6 md:flex-row md:items-end">
                     <div>

@@ -1,8 +1,8 @@
 export const navItems = [
   { label: "Program", href: "#program" },
-  { label: "Metode", href: "#metode" },
-  { label: "Kurikulum", href: "#kurikulum" },
-  { label: "Harga", href: "#harga" },
+  { label: "Method", href: "#method" },
+  { label: "Inside The Lab", href: "#inside-the-lab" },
+  { label: "Pricing", href: "#pricing" },
 ];
 
 export const logos = ["NOVA", "APEX", "ORBIT", "MONO", "KAIRO"];
