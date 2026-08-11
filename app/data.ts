@@ -50,9 +50,9 @@ export const features = [
 ];
 
 export const metrics = [
-  ["53", "Total cohorts"],
-  ["897", "Total members"],
-  ["2025", "Active since"],
+  ["53", "Total batches"],
+  ["897", "Community members"],
+  ["636+", "Hours of live sessions"],
 ];
 
 export const faqs = [

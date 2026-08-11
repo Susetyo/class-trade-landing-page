@@ -6,10 +6,10 @@ export function Metrics() {
             <div className="mx-auto max-w-7xl">
                 <div className="mb-8 max-w-3xl">
                     <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#827971]">
-                        Community Growth
+                        Join The Movement
                     </p>
                     <h2 className="mt-3 text-4xl font-semibold tracking-[-0.05em] text-[#F1F3F3] md:text-6xl">
-                        Built with a growing trading community.
+                        Grow alongside hundreds of active traders.
                     </h2>
                 </div>
 

@@ -62,7 +62,7 @@ export function Hero() {
                                     href="#inside-the-lab"
                                     className="rounded-full flex items-center gap-2 border border-white/15 px-7 py-4 text-sm font-bold text-[#F1F3F3] transition hover:bg-white/10"
                                 >
-                                    Explore Curriculum
+                                    Explore The Lab
                                 </a>
                             </div>
                         </div>

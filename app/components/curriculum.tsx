@@ -1,54 +1,349 @@
-import { modules } from "../data";
+import type { ReactNode } from "react";
+
+const mappingCards = [
+    {
+        title: "Mapping 1: Context",
+        variant: "fibonacci",
+    },
+    {
+        title: "Mapping 2: Zones",
+        variant: "zones",
+    },
+    {
+        title: "Mapping 3: The Setup",
+        variant: "setup",
+    },
+];
+
+const reviewCards = [
+    {
+        title: "Trade Execution / PnL",
+        quote: "Trading sekarang nggak deg-degan karena plan-nya jelas.",
+        member: "Member A",
+        variant: "execution",
+    },
+    {
+        title: "Notion Trading Journal",
+        quote: "Punya personal lab sendiri bikin evaluasi tiap loss jadi jauh lebih logis.",
+        member: "Member B",
+        variant: "journal",
+    },
+    {
+        title: "Discord Community Review",
+        quote: "Nggak gampang FOMO karena checklist entry-nya ketat banget.",
+        member: "Member C",
+        variant: "community",
+    },
+];
 
 export function Curriculum() {
     return (
-        <section id="inside-the-lab" className="relative z-10 px-4 py-20 md:px-8">
-            <div className="mx-auto max-w-7xl">
-                <div className="mb-12 flex flex-col justify-between gap-6 md:flex-row md:items-end">
-                    <div>
-                        <p className="text-sm font-bold uppercase tracking-[0.28em] text-[#8D8C59]">
-                            Curriculum
-                        </p>
-                        <h2 className="mt-5 max-w-4xl text-5xl font-semibold leading-[0.96] tracking-[-0.07em] md:text-7xl">
-                            A clear path for beginner traders.
-                        </h2>
-                    </div>
-                    <p className="max-w-sm text-lg leading-8 text-[#A5A4A1]">
-                        Semua module dibuat untuk membantu peserta memahami
-                        konsep, praktik, dan evaluasi.
-                    </p>
-                </div>
+        <section
+            id="inside-the-lab"
+            className="relative z-10 px-4 py-20 md:px-8"
+        >
+            <div className="mx-auto max-w-7xl overflow-hidden rounded-[44px] border border-white/10 bg-[#0F0D0A] p-5 shadow-2xl md:p-10">
+                <div className="relative overflow-hidden rounded-[32px] bg-[#15130F] p-6 md:p-8 lg:p-10">
+                    <div className="noise pointer-events-none absolute inset-0 opacity-30" />
+                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_70%_0%,rgba(141,140,89,0.22),transparent_34%),radial-gradient(circle_at_100%_100%,rgba(146,108,48,0.18),transparent_30%)]" />
 
-                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {modules.map((module) => (
-                        <ModuleCard key={module.number} {...module} />
-                    ))}
+                    <div className="relative grid gap-8 lg:grid-cols-[1.35fr_0.65fr] lg:items-start">
+                        <div>
+                            <p className="text-sm font-bold uppercase tracking-[0.34em] text-[#8D8C59]">
+                                Inside The Lab
+                            </p>
+                            <h2 className="mt-6 max-w-4xl text-5xl font-semibold leading-[0.92] text-[#F1F3F3] md:text-7xl lg:text-8xl">
+                                See the exact process our members use every day.
+                            </h2>
+                        </div>
+                        <p className="max-w-md text-lg leading-8 text-[#A5A4A1] lg:pt-16">
+                            Take a peek at how our community actually trades. No
+                            signals, no guesswork, just clear market mapping,
+                            disciplined execution, and strict journal
+                            evaluations.
+                        </p>
+                    </div>
+
+                    <div className="relative mt-10">
+                        <PhaseLabel>Phase 1: Mapping The Market</PhaseLabel>
+                        <div className="mt-4 grid gap-4 lg:grid-cols-3">
+                            {mappingCards.map((card) => (
+                                <LabCard key={card.title} title={card.title}>
+                                    <ChartMockup variant={card.variant} />
+                                </LabCard>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="relative mt-8">
+                        <PhaseLabel>Phase 2: Feedback & Review</PhaseLabel>
+                        <div className="mt-4 grid gap-4 lg:grid-cols-3">
+                            {reviewCards.map((card) => (
+                                <ReviewCard key={card.title} {...card} />
+                            ))}
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
     );
 }
 
-function ModuleCard({
-    number,
+function PhaseLabel({ children }: { children: string }) {
+    return (
+        <p className="text-center text-sm font-extrabold uppercase tracking-[0.22em] text-[#A5A4A1]">
+            <span className="text-[#827971]">[ </span>
+            {children}
+            <span className="text-[#827971]"> ]</span>
+        </p>
+    );
+}
+
+function LabCard({
     title,
-    body,
+    children,
 }: {
-    number: string;
     title: string;
-    body: string;
+    children: ReactNode;
 }) {
     return (
-        <article className="cursor-pointer group rounded-[36px] border border-white/10 bg-white/[0.04] p-7 transition duration-300 hover:-translate-y-1 hover:bg-[#F1F3F3] hover:text-[#0E0C0A]">
-            <p className="text-sm font-extrabold text-[#8D8C59] transition group-hover:text-[#534C29]">
-                {number}
-            </p>
-            <h3 className="mt-10 text-3xl font-semibold tracking-[-0.05em]">
+        <article className="overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.055] p-4 shadow-2xl backdrop-blur transition duration-300 hover:-translate-y-1 hover:border-[#8D8C59]/50">
+            {children}
+            <h3 className="mt-4 text-2xl font-semibold text-[#F1F3F3]">
                 {title}
             </h3>
-            <p className="mt-5 leading-7 text-[#A5A4A1] transition group-hover:text-[#6C6662]">
-                {body}
+        </article>
+    );
+}
+
+function ReviewCard({
+    title,
+    quote,
+    member,
+    variant,
+}: {
+    title: string;
+    quote: string;
+    member: string;
+    variant: string;
+}) {
+    return (
+        <article className="overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.055] p-4 shadow-2xl backdrop-blur transition duration-300 hover:-translate-y-1 hover:border-[#8D8C59]/50">
+            <ChartMockup variant={variant} />
+            <p className="mt-4 text-lg leading-7 text-[#F1F3F3]">
+                &quot;{quote}&quot;
+            </p>
+            <p className="mt-4 text-base font-semibold text-[#A5A4A1]">
+                - {member}
             </p>
         </article>
+    );
+}
+
+function ChartMockup({ variant }: { variant: string }) {
+    if (variant === "journal") {
+        return <JournalMockup />;
+    }
+
+    if (variant === "community") {
+        return <CommunityMockup />;
+    }
+
+    if (variant === "execution") {
+        return <ExecutionMockup />;
+    }
+
+    return (
+        <div className="relative aspect-[16/9] overflow-hidden rounded-2xl border border-white/10 bg-[#171B22]">
+            <div className="absolute inset-0 bg-[linear-gradient(rgba(241,243,243,0.05)_1px,transparent_1px),linear-gradient(90deg,rgba(241,243,243,0.05)_1px,transparent_1px)] bg-[size:28px_28px]" />
+            <svg
+                viewBox="0 0 420 236"
+                className="absolute inset-0 h-full w-full"
+                role="img"
+                aria-label="Trading chart mockup"
+            >
+                <path
+                    d="M30 170 L98 145 L154 162 L214 94 L276 125 L356 76"
+                    fill="none"
+                    stroke="#8D8C59"
+                    strokeWidth="3"
+                />
+                <path
+                    d="M44 192 L126 118 L190 132 L270 78 L380 86"
+                    fill="none"
+                    stroke="rgba(241,243,243,0.5)"
+                    strokeWidth="2"
+                />
+                <rect
+                    x="198"
+                    y="68"
+                    width="146"
+                    height="34"
+                    fill="rgba(141,140,89,0.32)"
+                />
+                <rect
+                    x="84"
+                    y="142"
+                    width="180"
+                    height="28"
+                    fill="rgba(141,140,89,0.24)"
+                />
+                {variant === "zones" && (
+                    <>
+                        <rect
+                            x="182"
+                            y="82"
+                            width="172"
+                            height="24"
+                            fill="none"
+                            stroke="#A5A4A1"
+                            strokeWidth="2"
+                        />
+                        <rect
+                            x="118"
+                            y="136"
+                            width="208"
+                            height="26"
+                            fill="none"
+                            stroke="#A5A4A1"
+                            strokeWidth="2"
+                        />
+                    </>
+                )}
+                {variant === "setup" && (
+                    <>
+                        <path
+                            d="M44 122 C92 82 142 158 202 112 C260 68 308 104 376 58"
+                            fill="none"
+                            stroke="#6C8F75"
+                            strokeWidth="9"
+                            opacity="0.65"
+                        />
+                        <rect
+                            x="254"
+                            y="82"
+                            width="68"
+                            height="42"
+                            fill="rgba(42,165,112,0.42)"
+                            stroke="#6FD59E"
+                            strokeWidth="2"
+                        />
+                    </>
+                )}
+                {Array.from({ length: 16 }).map((_, index) => {
+                    const x = 34 + index * 22;
+                    const high = 58 + ((index * 37) % 88);
+                    const low = high + 42 + ((index * 13) % 36);
+                    const close = high + 16 + ((index * 11) % 46);
+                    const isUp = index % 3 !== 0;
+
+                    return (
+                        <g key={x}>
+                            <line
+                                x1={x}
+                                x2={x}
+                                y1={high}
+                                y2={low}
+                                stroke={isUp ? "#27B49E" : "#E75E59"}
+                                strokeWidth="2"
+                            />
+                            <rect
+                                x={x - 5}
+                                y={isUp ? close - 26 : close}
+                                width="10"
+                                height="26"
+                                fill={isUp ? "#27B49E" : "#E75E59"}
+                                rx="2"
+                            />
+                        </g>
+                    );
+                })}
+            </svg>
+        </div>
+    );
+}
+
+function ExecutionMockup() {
+    return (
+        <div className="aspect-[16/9] overflow-hidden rounded-2xl border border-white/10 bg-[#F1F3F3] p-3 text-[#0E0C0A]">
+            <div className="grid h-full grid-cols-[0.82fr_1fr] gap-3">
+                <div className="rounded-xl bg-[#D8EFC4] p-3">
+                    <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#4F8B20]">
+                        PnL
+                    </p>
+                    <p className="mt-4 text-4xl font-extrabold">
+                        +8.4%
+                    </p>
+                    <p className="mt-2 text-sm font-semibold text-[#4B5D42]">
+                        Plan followed
+                    </p>
+                </div>
+                <div className="space-y-2">
+                    {["Entry", "Risk", "Target", "Review"].map((item, index) => (
+                        <div
+                            key={item}
+                            className="flex items-center justify-between rounded-lg bg-[#0E0C0A]/10 px-3 py-2 text-sm font-bold"
+                        >
+                            <span>{item}</span>
+                            <span>{index < 3 ? "Done" : "Next"}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function JournalMockup() {
+    return (
+        <div className="aspect-[16/9] overflow-hidden rounded-2xl border border-white/10 bg-[#111820] p-4">
+            <div className="mb-3 flex items-center justify-between">
+                <p className="text-sm font-bold text-[#F1F3F3]">Trading Journal</p>
+                <span className="rounded-full bg-[#8D8C59]/20 px-3 py-1 text-xs font-bold text-[#D6D1A2]">
+                    Review
+                </span>
+            </div>
+            <div className="grid grid-cols-4 gap-2 text-xs text-[#A5A4A1]">
+                {["Pair", "Setup", "Risk", "Evaluation"].map((item) => (
+                    <div key={item} className="rounded-lg bg-white/[0.06] p-2">
+                        {item}
+                    </div>
+                ))}
+            </div>
+            <div className="mt-3 space-y-2">
+                {[1, 2, 3].map((item) => (
+                    <div
+                        key={item}
+                        className="h-7 rounded-lg bg-gradient-to-r from-white/15 to-white/[0.04]"
+                    />
+                ))}
+            </div>
+        </div>
+    );
+}
+
+function CommunityMockup() {
+    return (
+        <div className="aspect-[16/9] overflow-hidden rounded-2xl border border-white/10 bg-[#171717] p-4">
+            <div className="grid h-full grid-cols-[72px_1fr] gap-3">
+                <div className="space-y-2">
+                    {[1, 2, 3, 4].map((item) => (
+                        <div
+                            key={item}
+                            className="h-9 rounded-xl bg-white/[0.08]"
+                        />
+                    ))}
+                </div>
+                <div className="space-y-3">
+                    {[1, 2, 3].map((item) => (
+                        <div key={item} className="rounded-xl bg-white/[0.07] p-3">
+                            <div className="h-3 w-2/3 rounded-full bg-white/25" />
+                            <div className="mt-2 h-3 w-full rounded-full bg-white/10" />
+                            <div className="mt-2 h-3 w-4/5 rounded-full bg-white/10" />
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
     );
 }
