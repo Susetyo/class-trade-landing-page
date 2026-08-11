@@ -40,23 +40,23 @@ export function Curriculum() {
     return (
         <section
             id="inside-the-lab"
-            className="relative z-10 px-4 py-20 md:px-8"
+            className="relative z-10 px-4 py-10 md:px-8 md:py-20"
         >
-            <div className="mx-auto max-w-7xl overflow-hidden rounded-[44px] border border-white/10 bg-[#0F0D0A] p-5 shadow-2xl md:p-10">
-                <div className="relative overflow-hidden rounded-[32px] bg-[#15130F] p-6 md:p-8 lg:p-10">
-                    <div className="noise pointer-events-none absolute inset-0 opacity-30" />
-                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_70%_0%,rgba(141,140,89,0.22),transparent_34%),radial-gradient(circle_at_100%_100%,rgba(146,108,48,0.18),transparent_30%)]" />
+            <div className="mx-auto max-w-7xl overflow-hidden rounded-[34px] border border-[#E4DDCE] bg-white p-3 shadow-[0_24px_70px_rgba(28,37,19,0.1)] sm:p-5 md:rounded-[44px] md:p-10">
+                <div className="relative overflow-hidden rounded-[28px] bg-[#F1EAD8] p-5 md:rounded-[32px] md:p-8 lg:p-10">
+                    <div className="noise pointer-events-none absolute inset-0 opacity-0" />
+                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_85%_0%,rgba(104,135,66,0.18),transparent_36%)]" />
 
                     <div className="relative grid gap-8 lg:grid-cols-[1.35fr_0.65fr] lg:items-start">
                         <div>
-                            <p className="text-sm font-bold uppercase tracking-[0.34em] text-[#8D8C59]">
+                            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#365C2A] sm:text-sm md:tracking-[0.24em]">
                                 Inside The Lab
                             </p>
-                            <h2 className="mt-6 max-w-4xl text-5xl font-semibold leading-[0.92] text-[#F1F3F3] md:text-7xl lg:text-8xl">
+                            <h2 className="mt-5 max-w-4xl text-4xl font-extrabold leading-tight text-[#102016] sm:text-5xl md:mt-6 md:text-7xl lg:text-8xl lg:leading-[0.92]">
                                 See the exact process our members use every day.
                             </h2>
                         </div>
-                        <p className="max-w-md text-lg leading-8 text-[#A5A4A1] lg:pt-16">
+                        <p className="max-w-md text-base leading-7 text-[#3C4636] md:text-lg md:leading-8 lg:pt-16">
                             Take a peek at how our community actually trades. No
                             signals, no guesswork, just clear market mapping,
                             disciplined execution, and strict journal
@@ -91,10 +91,10 @@ export function Curriculum() {
 
 function PhaseLabel({ children }: { children: string }) {
     return (
-        <p className="text-center text-sm font-extrabold uppercase tracking-[0.22em] text-[#A5A4A1]">
-            <span className="text-[#827971]">[ </span>
+        <p className="text-center text-xs font-extrabold uppercase tracking-[0.14em] text-[#365C2A] sm:text-sm sm:tracking-[0.22em]">
+            <span className="text-[#8D8C59]">[ </span>
             {children}
-            <span className="text-[#827971]"> ]</span>
+            <span className="text-[#8D8C59]"> ]</span>
         </p>
     );
 }
@@ -107,9 +107,9 @@ function LabCard({
     children: ReactNode;
 }) {
     return (
-        <article className="overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.055] p-4 shadow-2xl backdrop-blur transition duration-300 hover:-translate-y-1 hover:border-[#8D8C59]/50">
+        <article className="overflow-hidden rounded-[24px] border border-[#E4DDCE] bg-white p-3 shadow-[0_16px_38px_rgba(28,37,19,0.1)] backdrop-blur transition duration-300 hover:-translate-y-1 hover:border-[#8D8C59]/50 sm:p-4 md:rounded-[28px]">
             {children}
-            <h3 className="mt-4 text-2xl font-semibold text-[#F1F3F3]">
+            <h3 className="mt-4 text-xl font-semibold text-[#102016] md:text-2xl">
                 {title}
             </h3>
         </article>
@@ -128,12 +128,12 @@ function ReviewCard({
     variant: string;
 }) {
     return (
-        <article className="overflow-hidden rounded-[28px] border border-white/10 bg-white/[0.055] p-4 shadow-2xl backdrop-blur transition duration-300 hover:-translate-y-1 hover:border-[#8D8C59]/50">
+        <article className="overflow-hidden rounded-[24px] border border-[#E4DDCE] bg-white p-3 shadow-[0_16px_38px_rgba(28,37,19,0.1)] backdrop-blur transition duration-300 hover:-translate-y-1 hover:border-[#8D8C59]/50 sm:p-4 md:rounded-[28px]">
             <ChartMockup variant={variant} />
-            <p className="mt-4 text-lg leading-7 text-[#F1F3F3]">
+            <p className="mt-4 text-base leading-7 text-[#102016] md:text-lg">
                 &quot;{quote}&quot;
             </p>
-            <p className="mt-4 text-base font-semibold text-[#A5A4A1]">
+            <p className="mt-4 text-base font-semibold text-[#365C2A]">
                 - {member}
             </p>
         </article>

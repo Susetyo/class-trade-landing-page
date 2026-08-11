@@ -29,18 +29,21 @@ const mentors = [
 
 export function Experience() {
     return (
-        <section id="tiktok" className="relative z-10 px-4 py-20 md:px-8">
-            <div className="mx-auto max-w-7xl overflow-hidden rounded-[36px] border border-white/10 bg-[#0E0C0A] p-5 shadow-2xl md:p-10">
-                <div className="relative overflow-hidden rounded-[28px] bg-[#171411] p-6 md:p-10">
-                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_10%,rgba(141,140,89,0.24),transparent_30%),radial-gradient(circle_at_82%_92%,rgba(146,108,48,0.18),transparent_32%),linear-gradient(90deg,rgba(14,12,10,0.08),rgba(14,12,10,0.84))]" />
-                    <div className="noise pointer-events-none absolute inset-0 opacity-20" />
+        <section id="tiktok" className="relative z-10 px-4 py-10 md:px-8 md:py-20">
+            <div className="mx-auto max-w-7xl overflow-hidden rounded-[34px] border border-[#E4DDCE] bg-[#102016] p-3 shadow-[0_24px_70px_rgba(28,37,19,0.14)] sm:p-5 md:rounded-[36px] md:p-10">
+                <div className="relative overflow-hidden rounded-[28px] bg-[#172216] p-5 md:p-10">
+                    <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_10%,rgba(104,135,66,0.28),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.04),rgba(14,12,10,0.35))]" />
+                    <div className="noise pointer-events-none absolute inset-0 opacity-10" />
 
                     <div className="relative">
-                        <p className="text-sm font-extrabold uppercase tracking-[0.28em] text-[#8D8C59]">
+                        <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-[#DDE7C8] sm:text-sm md:tracking-[0.24em]">
                             Meet Your Mentors
                         </p>
 
-                        <div className="mt-8 grid items-start gap-5 lg:grid-cols-3">
+                        <div
+                            className="-mx-5 mt-8 grid auto-cols-[86%] grid-flow-col items-start gap-4 overflow-x-auto px-5 pb-4 snap-x snap-mandatory scroll-smooth no-scrollbar sm:auto-cols-[72%] md:-mx-10 md:auto-cols-[48%] md:px-10 lg:mx-0 lg:grid-flow-row lg:grid-cols-3 lg:auto-cols-auto lg:overflow-visible lg:px-0 lg:pb-0"
+                            aria-label="Mentor TikTok carousel"
+                        >
                             {mentors.map((mentor) => (
                                 <MentorTiktokCard
                                     key={mentor.uniqueId}
@@ -62,18 +65,18 @@ export function Experience() {
 
 function MentorTiktokCard({ mentor }: { mentor: (typeof mentors)[number] }) {
     return (
-        <article className="flex flex-col rounded-[28px] border border-[#8D8C59]/45 bg-[#0E0C0A]/72 p-5 text-[#F1F3F3] shadow-2xl backdrop-blur transition hover:border-[#8D8C59]/70">
-            <p className="text-base font-semibold text-[#D6D1A2]">
+        <article className="flex h-full min-w-0 snap-center flex-col rounded-[28px] border border-[#DDE7C8]/28 bg-[#F6F2EA]/10 p-4 text-[#F8F4EC] shadow-2xl backdrop-blur transition hover:border-[#8D8C59]/70 md:p-5">
+            <p className="text-sm font-semibold text-[#DDE7C8] md:text-base">
                 {mentor.role}
             </p>
-            <h3 className="mt-3 text-3xl font-extrabold leading-tight text-[#F1F3F3]">
+            <h3 className="mt-3 text-3xl font-extrabold leading-tight text-[#F8F4EC] md:text-3xl">
                 {mentor.name}
             </h3>
-            <p className="mt-4 min-h-[88px] text-sm font-medium leading-5 text-[#A5A4A1]">
+            <p className="mt-4 text-sm font-medium leading-6 text-[#D5D1C5] lg:min-h-[88px] lg:leading-5">
                 {mentor.description}
             </p>
 
-            <div className="mentor-tiktok-frame mt-5 h-[430px] overflow-hidden  bg-[#171411]/70 md:h-[450px] lg:h-[455px]">
+            <div className="mentor-tiktok-frame mt-5 h-[410px] overflow-hidden rounded-[22px] bg-[#0E0C0A]/55 shadow-[0_18px_44px_rgba(0,0,0,0.24)] sm:h-[430px] md:h-[450px] lg:h-[455px]">
                 <blockquote
                     className="tiktok-embed m-0 h-full w-full"
                     cite={mentor.tiktokUrl}

@@ -8,33 +8,33 @@ const mentors = ["Ov Kafeinmatcha", "Frida Kucing Hoki", "AHS ADX"];
 
 export function Hero() {
     return (
-        <section className="relative z-10 px-4 pb-20 pt-32 md:px-8 md:pb-28 md:pt-40">
+        <section className="relative z-10 px-4 pb-10 pt-24 sm:pb-20 sm:pt-32 md:px-8 md:pb-28 md:pt-40">
             <div className="mx-auto max-w-7xl">
-                <div className="grid items-end gap-10 lg:grid-cols-[1.05fr_0.95fr]">
-                    <div>
-                        <div className="mb-7 inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-[#A5A4A1] shadow-glow">
-                            <span className="h-2 w-2 rounded-full bg-[#8D8C59]" />
-                            Registration Open • Live Online Classes
+                <div className="grid min-w-0 items-end gap-10 overflow-hidden rounded-[34px] bg-[#FBF8F1] p-5 shadow-[0_24px_70px_rgba(28,37,19,0.12)] md:p-10 lg:grid-cols-[1.05fr_0.95fr]">
+                    <div className="min-w-0">
+                        <div className="mb-5 inline-flex max-w-full items-center gap-2 rounded-full border border-[#D8D0BD] bg-white/70 px-3 py-2 text-[11px] font-medium text-[#365C2A] shadow-sm sm:mb-7 sm:gap-3 sm:px-4 sm:text-sm">
+                            <span className="h-2 w-2 rounded-full bg-[#6C8F45]" />
+                            <span>Registration Open • Live Online Classes</span>
                         </div>
 
-                        <h1 className="max-w-5xl text-6xl font-semibold leading-[0.9] tracking-normal md:text-[112px] lg:text-[132px]">
+                        <h1 className="max-w-[330px] break-words text-[43px] font-extrabold leading-[0.98] text-[#102016] sm:max-w-5xl sm:text-6xl md:text-[92px] md:leading-[0.9] lg:text-[118px] xl:text-[132px]">
                             Build Your Trading Edge with Kafeinmatcha
                         </h1>
 
-                        <div className="mt-7 max-w-4xl">
-                            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[#827971]">
+                        <div className="mt-6 max-w-4xl md:mt-7">
+                            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#365C2A] md:tracking-[0.24em]">
                                 Mentor Lineup
                             </p>
-                            <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                            <div className="mt-3 grid grid-cols-3 overflow-hidden rounded-[26px] bg-white/88 shadow-[0_18px_45px_rgba(28,37,19,0.12)] sm:grid-cols-3 md:grid md:gap-3 md:overflow-visible md:rounded-none md:bg-transparent md:shadow-none">
                                 {mentors.map((mentor, index) => (
                                     <div
                                         key={mentor}
-                                        className="flex items-center gap-3 rounded-lg border border-white/10 bg-white/[0.045] px-4 py-3 backdrop-blur transition hover:border-[#8D8C59]/45 hover:bg-white/[0.075]"
+                                        className="flex min-h-[104px] flex-col items-center justify-center gap-2 border-r border-[#D8D0BD] px-2 py-4 text-center last:border-r-0 md:min-h-0 md:flex-row md:justify-start md:gap-3 md:rounded-lg md:border md:border-[#E4DDCE] md:bg-white/80 md:px-4 md:py-3 md:text-left md:shadow-sm md:backdrop-blur md:transition md:hover:border-[#8D8C59]/45 md:hover:bg-white"
                                     >
-                                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#F1F3F3] text-xs font-extrabold text-[#0E0C0A]">
+                                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#EFF4E8] text-xs font-extrabold text-[#102016] md:h-9 md:w-9">
                                             {String(index + 1).padStart(2, "0")}
                                         </span>
-                                        <span className="min-w-0 text-base font-semibold leading-tight text-[#F1F3F3]">
+                                        <span className="min-w-0 text-[11px] font-semibold leading-tight text-[#102016] md:text-base">
                                             {mentor}
                                         </span>
                                     </div>
@@ -42,8 +42,8 @@ export function Hero() {
                             </div>
                         </div>
 
-                        <div className="mt-8  max-w-3xl gap-6 md:grid-cols-[1fr_0.8fr] md:items-end">
-                            <p className="text-lg leading-8 text-[#A5A4A1] md:text-xl">
+                        <div className="mt-7 max-w-3xl gap-6 md:mt-8 md:grid-cols-[1fr_0.8fr] md:items-end">
+                            <p className="max-w-[310px] text-[15px] leading-7 text-[#2E352C] sm:text-lg md:max-w-none md:text-xl md:leading-8">
                                 A structured program designed to help you read
                                 the market, master risk management, and build a
                                 solid trading plan. Start trading independently
@@ -51,16 +51,16 @@ export function Hero() {
                             </p>
                         </div>
                         <div className="mt-8 flex flex-col gap-3 md:flex-row md:items-center">
-                            <div className="flex gap-3 md:justify-end">
+                            <div className="flex w-full flex-col gap-3 sm:flex-row md:justify-end">
                                 <a
                                     href="#pricing"
-                                    className="rounded-full flex items-center gap-2 bg-[#F1F3F3] px-7 py-4 text-sm font-extrabold text-[#0E0C0A] transition hover:bg-white"
+                                    className="flex items-center justify-center gap-2 rounded-xl bg-[#365C2A] px-6 py-4 text-sm font-extrabold uppercase tracking-[0.04em] text-[#F8F4EC] transition hover:bg-[#2D4D24] sm:px-7 md:rounded-full md:normal-case md:tracking-normal"
                                 >
                                     Join the Batch
                                 </a>
                                 <a
                                     href="#inside-the-lab"
-                                    className="rounded-full flex items-center gap-2 border border-white/15 px-7 py-4 text-sm font-bold text-[#F1F3F3] transition hover:bg-white/10"
+                                    className="flex items-center justify-center gap-2 rounded-xl border border-[#D8D0BD] px-6 py-3.5 text-sm font-bold text-[#365C2A] transition hover:bg-white/60 sm:px-7 sm:py-4 md:rounded-full"
                                 >
                                     Explore The Lab
                                 </a>
