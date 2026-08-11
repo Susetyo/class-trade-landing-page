@@ -8,9 +8,9 @@ const mentors = ["Ov Kafeinmatcha", "Frida Kucing Hoki", "AHS ADX"];
 
 export function Hero() {
     return (
-        <section className="relative z-10 px-4 pb-10 pt-24 sm:pb-20 sm:pt-32 md:px-8 md:pb-28 md:pt-40">
+        <section className="relative z-10 pb-10 pt-24 sm:pb-20 sm:pt-32 md:px-8 md:pb-28 md:pt-40">
             <div className="mx-auto max-w-7xl">
-                <div className="grid min-w-0 items-end gap-10 overflow-hidden rounded-[34px] bg-[#FBF8F1] p-5 shadow-[0_24px_70px_rgba(28,37,19,0.12)] md:p-10 lg:grid-cols-[1.05fr_0.95fr]">
+                <div className="grid min-w-0 items-end gap-10 overflow-hidden bg-[#FBF8F1] p-5 shadow-[0_24px_70px_rgba(28,37,19,0.12)] md:p-10 lg:grid-cols-[1.05fr_0.95fr]">
                     <div className="min-w-0">
                         <div className="mb-5 inline-flex max-w-full items-center gap-2 rounded-full border border-[#D8D0BD] bg-white/70 px-3 py-2 text-[11px] font-medium text-[#365C2A] shadow-sm sm:mb-7 sm:gap-3 sm:px-4 sm:text-sm">
                             <span className="h-2 w-2 rounded-full bg-[#6C8F45]" />

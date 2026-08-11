@@ -38,12 +38,9 @@ const reviewCards = [
 
 export function Curriculum() {
     return (
-        <section
-            id="inside-the-lab"
-            className="relative z-10 px-4 py-10 md:px-8 md:py-20"
-        >
-            <div className="mx-auto max-w-7xl overflow-hidden rounded-[34px] border border-[#E4DDCE] bg-white p-3 shadow-[0_24px_70px_rgba(28,37,19,0.1)] sm:p-5 md:rounded-[44px] md:p-10">
-                <div className="relative overflow-hidden rounded-[28px] bg-[#F1EAD8] p-5 md:rounded-[32px] md:p-8 lg:p-10">
+        <section id="inside-the-lab" className="relative z-10 md:px-8 md:py-20">
+            <div className="mx-auto max-w-7xl overflow-hidden border border-[#E4DDCE] bg-white shadow-[0_24px_70px_rgba(28,37,19,0.1)] sm:p-5 md:rounded-[44px] md:p-10">
+                <div className="relative overflow-hidden bg-[#F1EAD8] p-5 md:rounded-[32px] md:p-8 lg:p-10">
                     <div className="noise pointer-events-none absolute inset-0 opacity-0" />
                     <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_85%_0%,rgba(104,135,66,0.18),transparent_36%)]" />
 
@@ -66,7 +63,10 @@ export function Curriculum() {
 
                     <div className="relative mt-10">
                         <PhaseLabel>Phase 1: Mapping The Market</PhaseLabel>
-                        <div className="mt-4 grid gap-4 lg:grid-cols-3">
+                        <div
+                            className="-mx-5 mt-4 grid auto-cols-[86%] grid-flow-col gap-4 overflow-x-auto px-5 pb-4 snap-x snap-mandatory scroll-smooth no-scrollbar sm:auto-cols-[68%] md:-mx-8 md:auto-cols-[48%] md:px-8 lg:mx-0 lg:grid-flow-row lg:grid-cols-3 lg:auto-cols-auto lg:overflow-visible lg:px-0 lg:pb-0"
+                            aria-label="Phase 1 mapping carousel"
+                        >
                             {mappingCards.map((card) => (
                                 <LabCard key={card.title} title={card.title}>
                                     <ChartMockup variant={card.variant} />
@@ -77,7 +77,10 @@ export function Curriculum() {
 
                     <div className="relative mt-8">
                         <PhaseLabel>Phase 2: Feedback & Review</PhaseLabel>
-                        <div className="mt-4 grid gap-4 lg:grid-cols-3">
+                        <div
+                            className="-mx-5 mt-4 grid auto-cols-[86%] grid-flow-col gap-4 overflow-x-auto px-5 pb-4 snap-x snap-mandatory scroll-smooth no-scrollbar sm:auto-cols-[68%] md:-mx-8 md:auto-cols-[48%] md:px-8 lg:mx-0 lg:grid-flow-row lg:grid-cols-3 lg:auto-cols-auto lg:overflow-visible lg:px-0 lg:pb-0"
+                            aria-label="Phase 2 review carousel"
+                        >
                             {reviewCards.map((card) => (
                                 <ReviewCard key={card.title} {...card} />
                             ))}
@@ -99,15 +102,9 @@ function PhaseLabel({ children }: { children: string }) {
     );
 }
 
-function LabCard({
-    title,
-    children,
-}: {
-    title: string;
-    children: ReactNode;
-}) {
+function LabCard({ title, children }: { title: string; children: ReactNode }) {
     return (
-        <article className="overflow-hidden rounded-[24px] border border-[#E4DDCE] bg-white p-3 shadow-[0_16px_38px_rgba(28,37,19,0.1)] backdrop-blur transition duration-300 hover:-translate-y-1 hover:border-[#8D8C59]/50 sm:p-4 md:rounded-[28px]">
+        <article className="min-w-0 snap-center overflow-hidden rounded-[24px] border border-[#E4DDCE] bg-white p-3 shadow-[0_16px_38px_rgba(28,37,19,0.1)] backdrop-blur transition duration-300 hover:-translate-y-1 hover:border-[#8D8C59]/50 sm:p-4 md:rounded-[28px]">
             {children}
             <h3 className="mt-4 text-xl font-semibold text-[#102016] md:text-2xl">
                 {title}
@@ -128,7 +125,7 @@ function ReviewCard({
     variant: string;
 }) {
     return (
-        <article className="overflow-hidden rounded-[24px] border border-[#E4DDCE] bg-white p-3 shadow-[0_16px_38px_rgba(28,37,19,0.1)] backdrop-blur transition duration-300 hover:-translate-y-1 hover:border-[#8D8C59]/50 sm:p-4 md:rounded-[28px]">
+        <article className="min-w-0 snap-center overflow-hidden rounded-[24px] border border-[#E4DDCE] bg-white p-3 shadow-[0_16px_38px_rgba(28,37,19,0.1)] backdrop-blur transition duration-300 hover:-translate-y-1 hover:border-[#8D8C59]/50 sm:p-4 md:rounded-[28px]">
             <ChartMockup variant={variant} />
             <p className="mt-4 text-base leading-7 text-[#102016] md:text-lg">
                 &quot;{quote}&quot;
@@ -271,23 +268,23 @@ function ExecutionMockup() {
                     <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#4F8B20]">
                         PnL
                     </p>
-                    <p className="mt-4 text-4xl font-extrabold">
-                        +8.4%
-                    </p>
+                    <p className="mt-4 text-4xl font-extrabold">+8.4%</p>
                     <p className="mt-2 text-sm font-semibold text-[#4B5D42]">
                         Plan followed
                     </p>
                 </div>
                 <div className="space-y-2">
-                    {["Entry", "Risk", "Target", "Review"].map((item, index) => (
-                        <div
-                            key={item}
-                            className="flex items-center justify-between rounded-lg bg-[#0E0C0A]/10 px-3 py-2 text-sm font-bold"
-                        >
-                            <span>{item}</span>
-                            <span>{index < 3 ? "Done" : "Next"}</span>
-                        </div>
-                    ))}
+                    {["Entry", "Risk", "Target", "Review"].map(
+                        (item, index) => (
+                            <div
+                                key={item}
+                                className="flex items-center justify-between rounded-lg bg-[#0E0C0A]/10 px-3 py-2 text-sm font-bold"
+                            >
+                                <span>{item}</span>
+                                <span>{index < 3 ? "Done" : "Next"}</span>
+                            </div>
+                        ),
+                    )}
                 </div>
             </div>
         </div>
@@ -298,7 +295,9 @@ function JournalMockup() {
     return (
         <div className="aspect-[16/9] overflow-hidden rounded-2xl border border-white/10 bg-[#111820] p-4">
             <div className="mb-3 flex items-center justify-between">
-                <p className="text-sm font-bold text-[#F1F3F3]">Trading Journal</p>
+                <p className="text-sm font-bold text-[#F1F3F3]">
+                    Trading Journal
+                </p>
                 <span className="rounded-full bg-[#8D8C59]/20 px-3 py-1 text-xs font-bold text-[#D6D1A2]">
                     Review
                 </span>
@@ -336,7 +335,10 @@ function CommunityMockup() {
                 </div>
                 <div className="space-y-3">
                     {[1, 2, 3].map((item) => (
-                        <div key={item} className="rounded-xl bg-white/[0.07] p-3">
+                        <div
+                            key={item}
+                            className="rounded-xl bg-white/[0.07] p-3"
+                        >
                             <div className="h-3 w-2/3 rounded-full bg-white/25" />
                             <div className="mt-2 h-3 w-full rounded-full bg-white/10" />
                             <div className="mt-2 h-3 w-4/5 rounded-full bg-white/10" />

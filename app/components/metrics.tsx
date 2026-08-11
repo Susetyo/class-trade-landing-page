@@ -2,7 +2,10 @@ import { metrics } from "../data";
 
 export function Metrics() {
     return (
-        <section id="program" className="relative z-10 px-4 py-10 md:px-8 md:py-20">
+        <section
+            id="program"
+            className="relative z-10 px-4 pb-10 md:px-8 md:py-20"
+        >
             <div className="mx-auto max-w-7xl">
                 <div className="mb-6 flex items-end justify-between gap-4 md:mb-8 md:block">
                     <div className="max-w-3xl">

@@ -29,9 +29,9 @@ const mentors = [
 
 export function Experience() {
     return (
-        <section id="tiktok" className="relative z-10 px-4 py-10 md:px-8 md:py-20">
-            <div className="mx-auto max-w-7xl overflow-hidden rounded-[34px] border border-[#E4DDCE] bg-[#102016] p-3 shadow-[0_24px_70px_rgba(28,37,19,0.14)] sm:p-5 md:rounded-[36px] md:p-10">
-                <div className="relative overflow-hidden rounded-[28px] bg-[#172216] p-5 md:p-10">
+        <section id="tiktok" className="relative z-10 md:px-8 md:py-20">
+            <div className="mx-auto max-w-7xl overflow-hidden  border border-[#E4DDCE] bg-[#102016]  shadow-[0_24px_70px_rgba(28,37,19,0.14)] sm:p-5 md:rounded-[36px] md:p-10">
+                <div className="relative overflow-hidden md:rounded-[28px] bg-[#172216] p-5 md:p-10">
                     <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_10%,rgba(104,135,66,0.28),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.04),rgba(14,12,10,0.35))]" />
                     <div className="noise pointer-events-none absolute inset-0 opacity-10" />
 
@@ -65,7 +65,7 @@ export function Experience() {
 
 function MentorTiktokCard({ mentor }: { mentor: (typeof mentors)[number] }) {
     return (
-        <article className="flex h-full min-w-0 snap-center flex-col rounded-[28px] border border-[#DDE7C8]/28 bg-[#F6F2EA]/10 p-4 text-[#F8F4EC] shadow-2xl backdrop-blur transition hover:border-[#8D8C59]/70 md:p-5">
+        <article className="flex h-full min-w-0 snap-center flex-col rounded-md md:rounded-[28px]  bg-[#F6F2EA]/10 p-4 text-[#F8F4EC] shadow-2xl backdrop-blur transition hover:border-[#8D8C59]/70 md:p-5">
             <p className="text-sm font-semibold text-[#DDE7C8] md:text-base">
                 {mentor.role}
             </p>
@@ -76,7 +76,7 @@ function MentorTiktokCard({ mentor }: { mentor: (typeof mentors)[number] }) {
                 {mentor.description}
             </p>
 
-            <div className="mentor-tiktok-frame mt-5 h-[410px] overflow-hidden rounded-[22px] bg-[#0E0C0A]/55 shadow-[0_18px_44px_rgba(0,0,0,0.24)] sm:h-[430px] md:h-[450px] lg:h-[455px]">
+            <div className="mentor-tiktok-frame mt-5 h-[410px] overflow-hidden rounded-md md:rounded-[22px] bg-[#0E0C0A]/55 shadow-[0_18px_44px_rgba(0,0,0,0.24)] sm:h-[430px] md:h-[450px] lg:h-[455px]">
                 <blockquote
                     className="tiktok-embed m-0 h-full w-full"
                     cite={mentor.tiktokUrl}
