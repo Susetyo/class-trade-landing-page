@@ -32,3 +32,8 @@ next-env.d.ts
 *.pem
 .idea/
 .vscode/
+
+/app/generated/prisma
+
+.claude
+.windsurf

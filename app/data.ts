@@ -5,6 +5,10 @@ export const navItems = [
   { label: "Pricing", href: "#pricing" },
 ];
 
+export const toolNavItems = [
+  { label: "Risk Calculator", href: "/tools/risk-calculator", icon: "🧮" },
+];
+
 export const logos = ["NOVA", "APEX", "ORBIT", "MONO", "KAIRO"];
 
 export const modules = [
@@ -53,6 +57,48 @@ export const metrics = [
   ["53", "Total batches"],
   ["897", "Community members"],
   ["636+", "Hours of live sessions"],
+];
+
+export type PricingPlan = {
+  name: string;
+  description: string;
+  price: string;
+  originalPrice?: string;
+  badge?: string;
+  cta: string;
+  href: string;
+  features: string[];
+};
+
+export const pricingPlans: PricingPlan[] = [
+  {
+    name: "Core Foundation",
+    description: "Perfect for new traders.",
+    price: "Rp 500K",
+    cta: "Join Foundation",
+    href: "mailto:hello@kafeinmatcha.academy?subject=Join%20Core%20Foundation",
+    features: [
+      "Market structure & mapping",
+      "Risk management setup",
+      "Trading journal basics",
+      "Private community access",
+    ],
+  },
+  {
+    name: "Advanced Edge",
+    description: "Sharpen your technical edge.",
+    price: "Rp 500K",
+    originalPrice: "Rp 1.000.000",
+    badge: "50% OFF LIMITED",
+    cta: "Join Advanced",
+    href: "mailto:hello@kafeinmatcha.academy?subject=Join%20Advanced%20Edge",
+    features: [
+      "Advanced ADX & momentum",
+      "Complex market case studies",
+      "Setup optimization system",
+      "Priority mentor feedback",
+    ],
+  },
 ];
 
 export const faqs = [

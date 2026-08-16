@@ -1,61 +1,22 @@
-const plans = [
-    {
-        name: "Core Foundation",
-        description: "Perfect for new traders.",
-        price: "Rp 500K",
-        cta: "Join Foundation",
-        href: "mailto:hello@kafeinmatcha.academy?subject=Join%20Core%20Foundation",
-        features: [
-            "Market structure & mapping",
-            "Risk management setup",
-            "Trading journal basics",
-            "Private community access",
-        ],
-    },
-    {
-        name: "Advanced Edge",
-        description: "Sharpen your technical edge.",
-        price: "Rp 500K",
-        originalPrice: "Rp 1.000.000",
-        badge: "50% OFF LIMITED",
-        cta: "Join Advanced",
-        href: "mailto:hello@kafeinmatcha.academy?subject=Join%20Advanced%20Edge",
-        features: [
-            "Advanced ADX & momentum",
-            "Complex market case studies",
-            "Setup optimization system",
-            "Priority mentor feedback",
-        ],
-    },
-];
+import { pricingPlans, type PricingPlan } from "../data";
+
+const PLAN_CAROUSEL_CLASSNAME =
+    "-mx-5 grid auto-cols-[86%] grid-flow-col gap-4 overflow-x-auto px-5 pb-4 snap-x snap-mandatory scroll-smooth no-scrollbar sm:-mx-6 sm:auto-cols-[68%] sm:px-6 md:auto-cols-[48%] lg:mx-0 lg:grid-flow-row lg:grid-cols-2 lg:auto-cols-auto lg:overflow-visible lg:px-0 lg:pb-0";
 
 export function Pricing() {
     return (
         <section id="pricing" className="relative z-10 md:px-8 md:py-20">
             <div className="mx-auto max-w-7xl overflow-hidden border border-[#E4DDCE] bg-white shadow-[0_24px_70px_rgba(28,37,19,0.1)] sm:p-5 md:rounded-[48px] md:p-10">
-                <div className=" bg-[#FBF8F1] p-5 text-[#102016] sm:p-6 md:rounded-[40px] md:p-10 lg:p-14">
+                <div className="bg-[#FBF8F1] p-5 text-[#102016] sm:p-6 md:rounded-[40px] md:p-10 lg:p-14">
                     <div className="grid gap-8 lg:grid-cols-[1.15fr_1.8fr] lg:items-stretch">
-                        <div className="flex flex-col justify-center">
-                            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#365C2A] sm:text-sm md:tracking-[0.24em]">
-                                Enrollment
-                            </p>
-                            <h2 className="mt-5 max-w-xl text-4xl font-extrabold leading-tight sm:text-5xl md:mt-6 md:text-7xl md:leading-[0.92]">
-                                Choose the right batch for your journey.
-                            </h2>
-                            <p className="mt-5 max-w-xl text-base leading-7 text-[#3C4636] md:mt-7 md:text-xl md:leading-9">
-                                Get full access to live interactive classes,
-                                session recordings, our private community, and
-                                all the essential templates you need to build
-                                your trading lab.
-                            </p>
-                        </div>
+                        <PricingIntro />
 
                         <div
-                            className="-mx-5 grid auto-cols-[86%] grid-flow-col gap-4 overflow-x-auto px-5 pb-4 snap-x snap-mandatory scroll-smooth no-scrollbar sm:-mx-6 sm:auto-cols-[68%] sm:px-6 md:auto-cols-[48%] lg:mx-0 lg:grid-flow-row lg:grid-cols-2 lg:auto-cols-auto lg:overflow-visible lg:px-0 lg:pb-0"
+                            className={PLAN_CAROUSEL_CLASSNAME}
                             aria-label="Enrollment plan carousel"
                         >
-                            {plans.map((plan) => (
-                                <PlanCard key={plan.name} {...plan} />
+                            {pricingPlans.map((plan) => (
+                                <PlanCard key={plan.name} plan={plan} />
                             ))}
                         </div>
                     </div>
@@ -65,25 +26,27 @@ export function Pricing() {
     );
 }
 
-function PlanCard({
-    name,
-    description,
-    price,
-    originalPrice,
-    badge,
-    cta,
-    href,
-    features,
-}: {
-    name: string;
-    description: string;
-    price: string;
-    originalPrice?: string;
-    badge?: string;
-    cta: string;
-    href: string;
-    features: string[];
-}) {
+function PricingIntro() {
+    return (
+        <div className="flex flex-col justify-center">
+            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#365C2A] sm:text-sm md:tracking-[0.24em]">
+                Enrollment
+            </p>
+            <h2 className="mt-5 max-w-xl text-4xl font-extrabold leading-tight sm:text-5xl md:mt-6 md:text-7xl md:leading-[0.92]">
+                Choose the right batch for your journey.
+            </h2>
+            <p className="mt-5 max-w-xl text-base leading-7 text-[#3C4636] md:mt-7 md:text-xl md:leading-9">
+                Get full access to live interactive classes, session
+                recordings, our private community, and all the essential
+                templates you need to build your trading lab.
+            </p>
+        </div>
+    );
+}
+
+function PlanCard({ plan }: { plan: PricingPlan }) {
+    const { name, description, price, originalPrice, badge, cta, href, features } = plan;
+
     return (
         <article className="flex min-h-[420px] min-w-0 snap-center flex-col rounded-md bg-[#102016] p-5 text-[#F8F4EC] shadow-[0_18px_50px_rgba(28,37,19,0.18)] md:min-h-[460px] md:rounded-[32px] md:p-7">
             {badge ? (
@@ -117,10 +80,10 @@ function PlanCard({
                 </div>
             </div>
 
-            <ul className="mt-8 space-y-3 text-sm font-medium leading-7 text-[#E3DFD2] md:space-y-4 md:text-base">
+            <ul className="mb-4 mt-8 space-y-3 text-sm font-medium leading-7 text-[#E3DFD2] md:space-y-4 md:text-base">
                 {features.map((feature) => (
                     <li key={feature} className="flex gap-3">
-                        <span className="text-[#F8F4EC]">✓</span>
+                        <span aria-hidden="true">✓</span>
                         <span>{feature}</span>
                     </li>
                 ))}
