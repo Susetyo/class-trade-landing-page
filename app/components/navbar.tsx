@@ -32,6 +32,9 @@ export function Navbar() {
             <Link href="/tools/risk-calculator" className="transition hover:text-[#365C2A]">
               Risk Calculator
             </Link>
+            <Link href="/register" className="transition hover:text-[#365C2A]">
+              Register
+            </Link>
           </nav>
 
           <a
@@ -79,6 +82,13 @@ export function Navbar() {
               className="rounded-2xl px-4 py-3 transition hover:bg-[#EFE9DA] hover:text-[#365C2A]"
             >
               Risk Calculator
+            </Link>
+            <Link
+              href="/register"
+              onClick={() => setOpen(false)}
+              className="rounded-2xl px-4 py-3 transition hover:bg-[#EFE9DA] hover:text-[#365C2A]"
+            >
+              Register
             </Link>
             <a
               href="#pricing"
