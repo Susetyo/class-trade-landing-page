@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { useForm } from "react-hook-form";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type RegistrationFormValues = {
     name: string;
@@ -33,6 +35,7 @@ async function postJson<T>(url: string, body: unknown): Promise<T> {
 }
 
 export function RegistrationForm() {
+    const router = useRouter();
     const {
         register,
         handleSubmit,
@@ -45,9 +48,11 @@ export function RegistrationForm() {
         type: "idle",
         message: "",
     });
+    const [paymentOrderId, setPaymentOrderId] = useState<string | null>(null);
 
     async function onSubmit(values: RegistrationFormValues) {
         setStatus({ type: "info", message: "Menyimpan pendaftaran..." });
+        setPaymentOrderId(null);
 
         try {
             const registrationResult = await postJson<{
@@ -57,14 +62,12 @@ export function RegistrationForm() {
             setStatus({ type: "info", message: "Membuat pembayaran..." });
 
             const paymentResult = await postJson<{
-                data: { snapToken?: string };
+                data: { orderId: string; snapToken?: string };
             }>("/api/payments", {
                 registrationId: registrationResult.data.id,
             });
 
-            const snapToken = paymentResult.data.snapToken;
-
-            console.log(snapToken);
+            const { orderId, snapToken } = paymentResult.data;
 
             if (!snapToken) {
                 throw new Error("Snap token tidak ditemukan.");
@@ -78,30 +81,27 @@ export function RegistrationForm() {
 
             window.snap.pay(snapToken, {
                 onSuccess() {
-                    setStatus({
-                        type: "success",
-                        message:
-                            "Pembayaran berhasil! Tim kami akan segera menghubungi kamu.",
-                    });
                     reset();
+                    router.push(`/payment/${orderId}`);
                 },
                 onPending() {
-                    setStatus({
-                        type: "info",
-                        message: "Pembayaran sedang menunggu penyelesaian.",
-                    });
+                    router.push(`/payment/${orderId}`);
                 },
                 onError() {
                     setStatus({
                         type: "error",
-                        message: "Pembayaran gagal. Silakan coba lagi.",
+                        message:
+                            "Pembayaran gagal. Silakan coba lagi atau cek status pembayaran.",
                     });
+                    setPaymentOrderId(orderId);
                 },
                 onClose() {
                     setStatus({
                         type: "info",
-                        message: "Kamu menutup halaman pembayaran.",
+                        message:
+                            "Kamu menutup halaman pembayaran. Pembayaran masih bisa diselesaikan.",
                     });
+                    setPaymentOrderId(orderId);
                 },
             });
         } catch (error) {
@@ -224,6 +224,15 @@ export function RegistrationForm() {
                     <p className="mt-6 rounded-2xl border border-[#D8D2C0] bg-[#F3EFE3] px-4 py-3 text-sm font-medium leading-6 text-[#5B5546]">
                         {status.message}
                     </p>
+                ) : null}
+
+                {paymentOrderId ? (
+                    <Link
+                        href={`/payment/${paymentOrderId}`}
+                        className="mt-4 inline-flex w-full items-center justify-center rounded-full border border-[#365C2A] px-5 py-3 text-sm font-bold text-[#365C2A] transition hover:bg-[#365C2A] hover:text-[#F8F4EC] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#365C2A] focus-visible:ring-offset-2"
+                    >
+                        Cek Status Pembayaran
+                    </Link>
                 ) : null}
 
                 <button
