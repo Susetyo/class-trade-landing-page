@@ -11,7 +11,7 @@ milestone berikutnya.
 | Variable | Keterangan |
 | --- | --- |
 | `TELEGRAM_BOT_TOKEN` | Token rahasia dari BotFather. Hanya dipakai di backend (server-side), tidak pernah dikirim ke client. |
-| `TELEGRAM_GROUP_ID` | Numeric chat ID dari private supergroup tujuan. |
+| `TELEGRAM_GROUP_ID` | Numeric chat ID dari private group, supergroup, atau channel tujuan (nama variable dipertahankan `TELEGRAM_GROUP_ID` walau targetnya bisa berupa channel). |
 | `TELEGRAM_WEBHOOK_SECRET` | Random secret untuk memverifikasi request webhook Telegram (header `X-Telegram-Bot-Api-Secret-Token`). |
 | `APP_URL` | Domain HTTPS production yang stabil, misalnya `https://nama-project.vercel.app`. Jangan pakai URL preview deployment yang berubah setiap commit. |
 
@@ -44,37 +44,49 @@ Untuk pengembangan lokal, `scripts/setup-telegram-webhook.mjs` dan
    opsi *Revoke current token* / *API Token* untuk generate ulang
    token, lalu update environment variable dengan token baru.
 
-## 3. Membuat grup dan menjadikan bot admin
+## 3. Menyiapkan grup/channel dan menjadikan bot admin
 
-1. Buat grup Telegram baru, set sebagai **private group**.
-2. Tambahkan bot yang baru dibuat ke grup tersebut.
-3. Jadikan bot sebagai **administrator** grup.
+Project ini menargetkan sebuah **private channel** (bukan supergroup)
+sebagai tujuan akses berbayar. Telegram Bot API mendukung admin
+permission dan `chat_join_request` untuk channel dengan cara yang
+sama seperti group/supergroup, jadi langkahnya setara:
+
+1. Buat channel Telegram baru, set sebagai **private channel**.
+2. Tambahkan bot yang baru dibuat ke channel tersebut.
+3. Jadikan bot sebagai **administrator** channel.
 4. Saat memberi permission admin, aktifkan **Invite Users via Link**
    (`can_invite_users`) — permission ini dibutuhkan untuk milestone
    berikutnya (invite link berbayar).
-5. Pastikan grup berstatus **supergroup** (Telegram otomatis
-   mengonversi grup biasa menjadi supergroup begitu fitur tertentu
-   diaktifkan, misalnya link undangan atau jumlah member tertentu) —
-   fitur `chat_join_request` yang akan dipakai di milestone berikutnya
-   membutuhkan supergroup.
+5. Untuk memakai `chat_join_request` (di milestone berikutnya),
+   aktifkan pengaturan **"Request to join"** / persetujuan approval
+   di private channel tersebut (Channel → Settings → Channel Type
+   → *Approve New Members*), sehingga user yang klik invite link
+   masuk sebagai join request, bukan langsung menjadi member.
 
-## 4. Mendapatkan numeric group ID
+> Catatan: jika target sebenarnya berupa private **group/supergroup**
+> biasa (bukan channel), langkahnya identik — cukup ganti "channel"
+> dengan "grup" di atas. Script verifikasi (`npm run telegram:check`)
+> menerima ketiga tipe chat ini: `group`, `supergroup`, `channel`.
+
+## 4. Mendapatkan numeric chat ID (grup atau channel)
 
 Cara paling aman untuk mendapatkan `chat.id` tanpa mengekspos data
-pribadi anggota grup lain:
+pribadi anggota lain:
 
-1. Tambahkan bot ke grup (langkah di atas) sehingga bot menerima
-   update `my_chat_member` ketika status keanggotaannya berubah.
+1. Tambahkan bot ke grup/channel (langkah di atas) sehingga bot
+   menerima update `my_chat_member` ketika status keanggotaannya
+   berubah.
 2. Pasang webhook (lihat bagian 6) lalu lihat log server (Vercel logs)
    untuk baris `Bot membership status updated` — baris ini mencetak
-   `chatId` dan `chatType`, tanpa nama grup atau data anggota lain.
+   `chatId` dan `chatType`, tanpa nama chat atau data anggota lain.
 3. Alternatif tanpa webhook aktif: gunakan method Telegram
    `getUpdates` secara manual (misalnya lewat `curl`) setelah mengirim
-   pesan apa pun ke grup. **Catatan penting**: `getUpdates` tidak bisa
-   dipakai bersamaan dengan webhook yang aktif. Jika webhook sudah
-   dipasang, hapus dulu webhook dengan method `deleteWebhook` secara
-   sadar/manual sebelum memanggil `getUpdates`, lalu pasang ulang
-   webhook (`npm run telegram:webhook:set`) setelah selesai. Jangan
+   pesan/post apa pun ke chat tersebut. **Catatan penting**:
+   `getUpdates` tidak bisa dipakai bersamaan dengan webhook yang
+   aktif. Jika webhook sudah dipasang, hapus dulu webhook dengan
+   method `deleteWebhook` secara sadar/manual sebelum memanggil
+   `getUpdates`, lalu pasang ulang webhook
+   (`npm run telegram:webhook:set`) setelah selesai. Jangan
    menghapus webhook otomatis dari script — ini harus tindakan manual
    yang disengaja.
 4. Setelah `chat.id` didapat, simpan ke `TELEGRAM_GROUP_ID`.
@@ -142,12 +154,13 @@ Script `scripts/check-telegram-bot.mjs` akan:
   count, last error date/message, allowed updates (tanpa webhook
   secret).
 - Jika `TELEGRAM_GROUP_ID` diset: memanggil `getChat` untuk memastikan
-  tipe chat `group`/`supergroup`, lalu `getChatMember` untuk
-  memastikan bot berstatus `administrator` (atau `creator`) dan
-  permission `can_invite_users` aktif. Jika belum, script mencetak
-  instruksi: *"Tambahkan bot sebagai administrator grup dan aktifkan
-  permission Invite Users."* Script ini tidak pernah mempromosikan
-  bot secara otomatis.
+  tipe chat `group`, `supergroup`, atau `channel`, lalu
+  `getChatMember` untuk memastikan bot berstatus `administrator`
+  (atau `creator`) dan permission `can_invite_users` aktif. Jika
+  belum, script mencetak instruksi: *"Tambahkan bot sebagai
+  administrator dan aktifkan permission Invite Users pada chat
+  tersebut."* Script ini tidak pernah mempromosikan bot secara
+  otomatis.
 
 ## 8. Update Telegram yang didukung milestone ini
 

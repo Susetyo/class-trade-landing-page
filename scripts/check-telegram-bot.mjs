@@ -2,7 +2,8 @@
 
 /**
  * Memverifikasi konfigurasi Telegram bot: token, webhook, dan
- * (jika TELEGRAM_GROUP_ID diset) status admin bot di grup tujuan.
+ * (jika TELEGRAM_GROUP_ID diset) status admin bot di grup/channel
+ * tujuan.
  *
  * Jalankan dengan:
  *   node --env-file=.env.local scripts/check-telegram-bot.mjs
@@ -94,8 +95,10 @@ async function checkWebhook(botToken) {
     );
 }
 
+const SUPPORTED_TARGET_CHAT_TYPES = ["group", "supergroup", "channel"];
+
 async function checkGroup(botToken, groupId, botId) {
-    console.log("=== Verifikasi Grup ===");
+    console.log("=== Verifikasi Target Chat (Grup/Channel) ===");
 
     const chat = await callTelegram(botToken, "getChat", {
         chat_id: groupId,
@@ -104,9 +107,10 @@ async function checkGroup(botToken, groupId, botId) {
     console.log(`Chat title: ${chat.title ?? "-"}`);
     console.log(`Chat type: ${chat.type}`);
 
-    if (chat.type !== "group" && chat.type !== "supergroup") {
+    if (!SUPPORTED_TARGET_CHAT_TYPES.includes(chat.type)) {
         console.error(
-            "\nError: TELEGRAM_GROUP_ID bukan group atau supergroup.",
+            "\nError: TELEGRAM_GROUP_ID bukan group, supergroup, " +
+                "atau channel.",
         );
         process.exitCode = 1;
         return;
@@ -117,7 +121,7 @@ async function checkGroup(botToken, groupId, botId) {
         user_id: botId,
     });
 
-    console.log(`Bot status di grup: ${member.status}`);
+    console.log(`Bot status di chat: ${member.status}`);
 
     const isAdmin =
         member.status === "administrator" || member.status === "creator";
@@ -131,15 +135,15 @@ async function checkGroup(botToken, groupId, botId) {
 
     if (!isAdmin || !canInviteUsers) {
         console.error(
-            "\nTambahkan bot sebagai administrator grup dan " +
-                "aktifkan permission Invite Users.",
+            "\nTambahkan bot sebagai administrator dan aktifkan " +
+                "permission Invite Users pada chat tersebut.",
         );
         process.exitCode = 1;
         return;
     }
 
     console.log("Permission can_invite_users: aktif");
-    console.log("\nVerifikasi grup berhasil.");
+    console.log("\nVerifikasi target chat berhasil.");
 }
 
 async function main() {
@@ -151,7 +155,7 @@ async function main() {
 
     if (!groupId) {
         console.log(
-            "TELEGRAM_GROUP_ID tidak diset — verifikasi grup dilewati.",
+            "TELEGRAM_GROUP_ID tidak diset — verifikasi target chat dilewati.",
         );
         return;
     }
