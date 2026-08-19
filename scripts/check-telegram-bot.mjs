@@ -126,12 +126,18 @@ async function checkChannel(botToken, channelId, botId) {
     const isAdmin =
         member.status === "administrator" || member.status === "creator";
 
-    // Telegram tidak menyertakan `can_invite_users` untuk status
-    // "creator" karena creator otomatis memiliki semua permission.
+    // Telegram tidak menyertakan `can_invite_users`/`can_restrict_members`
+    // untuk status "creator" karena creator otomatis memiliki semua
+    // permission.
     const canInviteUsers =
         member.status === "creator"
             ? true
             : member.can_invite_users === true;
+
+    const canRestrictMembers =
+        member.status === "creator"
+            ? true
+            : member.can_restrict_members === true;
 
     if (!isAdmin) {
         console.error(
@@ -142,10 +148,10 @@ async function checkChannel(botToken, channelId, botId) {
         return;
     }
 
-    if (!canInviteUsers) {
+    if (!canInviteUsers || !canRestrictMembers) {
         console.error(
-            "\nAktifkan permission Invite Users untuk bot pada " +
-                "private channel tersebut.",
+            "\nBot harus menjadi administrator channel dan memiliki " +
+                "permission Restrict Members.",
         );
         process.exitCode = 1;
         return;
@@ -154,6 +160,7 @@ async function checkChannel(botToken, channelId, botId) {
     console.log("\nTelegram channel terverifikasi");
     console.log("Bot adalah administrator channel");
     console.log("Permission Invite Users aktif");
+    console.log("Permission Restrict Members aktif");
 }
 
 async function main() {

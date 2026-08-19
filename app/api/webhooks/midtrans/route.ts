@@ -10,9 +10,59 @@ import {
     getMidtransTransactionStatus,
     type MidtransTransactionStatus,
 } from "@/lib/midtrans";
+import { reconcileTelegramAccessForOrder } from "@/lib/telegram-access-revocation";
+import type { PaymentStatus } from "@/app/generated/prisma/enums";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+
+// Milestone 14: once an Order has reached PAID (or a refund/chargeback
+// state derived from it), a stale or out-of-order notification
+// reporting one of these non-payment statuses must never downgrade
+// it — see docs/telegram-setup.md.
+const NEVER_DOWNGRADE_FROM: PaymentStatus[] = [
+    "PAID",
+    "REFUNDED",
+    "PARTIALLY_REFUNDED",
+    "CHARGEBACK",
+    "PARTIAL_CHARGEBACK",
+];
+const NON_PAYMENT_STATUSES: PaymentStatus[] = [
+    "PENDING",
+    "EXPIRED",
+    "CANCELLED",
+    "FAILED",
+];
+
+// Statuses that can affect Telegram entitlement — only these are
+// worth an extra query + potential Telegram calls after commit.
+const ENTITLEMENT_SENSITIVE_STATUSES: PaymentStatus[] = [
+    "REFUNDED",
+    "PARTIALLY_REFUNDED",
+    "CHARGEBACK",
+    "PARTIAL_CHARGEBACK",
+];
+
+function shouldPersistStatusChange(
+    current: PaymentStatus,
+    next: PaymentStatus,
+): boolean {
+    if (current === next) return true;
+
+    // Fully terminal — once a transaction has been reported fully
+    // refunded or fully charged back, no later notification may move
+    // it anywhere else.
+    if (current === "REFUNDED" || current === "CHARGEBACK") return false;
+
+    if (
+        NEVER_DOWNGRADE_FROM.includes(current) &&
+        NON_PAYMENT_STATUSES.includes(next)
+    ) {
+        return false;
+    }
+
+    return true;
+}
 
 type MidtransNotification =
     MidtransTransactionStatus & {
@@ -110,12 +160,15 @@ function resolvePaymentStatus(
         return "PARTIALLY_REFUNDED" as const;
     }
 
-    if (
-        transactionStatus === "chargeback" ||
-        transactionStatus ===
-        "partial_chargeback"
-    ) {
+    if (transactionStatus === "chargeback") {
         return "CHARGEBACK" as const;
+    }
+
+    if (transactionStatus === "partial_chargeback") {
+        // Kept distinct from full CHARGEBACK — Milestone 14 policy
+        // requires manual review rather than an automatic revocation.
+        // See lib/telegram-entitlement.ts.
+        return "PARTIAL_CHARGEBACK" as const;
     }
 
     return null;
@@ -222,6 +275,29 @@ export async function POST(request: Request) {
             );
         }
 
+        // 4b. Pastikan transaction ID cocok dengan transaksi yang
+        // sudah tercatat untuk Order ini (jika sudah pernah tercatat)
+        // — mencegah notification untuk transaksi lain diterapkan ke
+        // Order yang salah.
+        if (
+            order.midtransTransactionId &&
+            order.midtransTransactionId !==
+            currentTransaction.transaction_id
+        ) {
+            console.error(
+                "Transaction ID mismatch for order",
+            );
+
+            return NextResponse.json(
+                {
+                    message: "Transaksi tidak sesuai",
+                },
+                {
+                    status: 400,
+                },
+            );
+        }
+
         // 5. Petakan status Midtrans
         const paymentStatus =
             resolvePaymentStatus(currentTransaction);
@@ -252,6 +328,27 @@ export async function POST(request: Request) {
 
         const payload = JSON.parse(rawBody);
 
+        // Cumulative refund amount, sourced only from Midtrans' own
+        // status response — never from the browser. Used centrally by
+        // lib/telegram-entitlement.ts to tell a full refund (by
+        // value) apart from a partial one.
+        const refundedAmount = currentTransaction.refund_amount
+            ? Number(currentTransaction.refund_amount)
+            : order.refundedAmount;
+
+        // A stale/out-of-order notification must never downgrade an
+        // Order that has already reached PAID (or a refund/chargeback
+        // state derived from it) back to a non-payment status — see
+        // shouldPersistStatusChange above.
+        const persistStatusChange = shouldPersistStatusChange(
+            order.status,
+            paymentStatus,
+        );
+
+        const finalOrderStatus = persistStatusChange
+            ? paymentStatus
+            : order.status;
+
         // 7. Simpan webhook dan update order
         // dalam satu database transaction
         await prisma.$transaction([
@@ -278,19 +375,37 @@ export async function POST(request: Request) {
                 where: {
                     id: order.id,
                 },
-                data: {
-                    status: paymentStatus,
-                    midtransTransactionId:
-                        currentTransaction.transaction_id,
-                    paymentType:
-                        currentTransaction.payment_type,
-                    paidAt:
-                        paymentStatus === "PAID"
-                            ? order.paidAt ?? new Date()
-                            : order.paidAt,
-                },
+                data: persistStatusChange
+                    ? {
+                        status: paymentStatus,
+                        midtransTransactionId:
+                            currentTransaction.transaction_id,
+                        paymentType:
+                            currentTransaction.payment_type,
+                        paidAt:
+                            paymentStatus === "PAID"
+                                ? order.paidAt ?? new Date()
+                                : order.paidAt,
+                        refundedAmount,
+                    }
+                    : {
+                        // Status change ignored (stale/out-of-order),
+                        // but transaction identity/refund audit data
+                        // can still be safely recorded.
+                        midtransTransactionId:
+                            currentTransaction.transaction_id,
+                        refundedAmount,
+                    },
             }),
         ]);
+
+        // 8. Rekonsiliasi akses Telegram — di luar transaction di
+        // atas (tidak pernah menahan koneksi DB sambil menunggu
+        // Telegram API), best-effort, dan tidak pernah menggagalkan
+        // response webhook ini.
+        if (ENTITLEMENT_SENSITIVE_STATUSES.includes(finalOrderStatus)) {
+            await reconcileTelegramAccessForOrder(order.id);
+        }
 
         return NextResponse.json({
             message: "Webhook berhasil diproses",

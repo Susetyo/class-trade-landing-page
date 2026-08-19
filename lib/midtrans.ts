@@ -82,6 +82,10 @@ export type MidtransTransactionStatus = {
     payment_type?: string;
     fraud_status?: string;
     signature_key?: string;
+    // Present when transaction_status is "refund" or "partial_refund" —
+    // cumulative amount refunded so far, per Midtrans transaction-status
+    // reference.
+    refund_amount?: string;
 };
 
 export async function getMidtransTransactionStatus(

@@ -5,6 +5,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import {
     sendTelegramMessage,
+    TelegramConfigError,
+    TelegramNetworkError,
+    TelegramTimeoutError,
     type TelegramChatJoinRequest,
     type TelegramChatMemberUpdated,
     type TelegramMessage,
@@ -14,6 +17,15 @@ import {
     hashLinkToken,
     isValidRawTokenFormat,
 } from "@/lib/telegram-linking";
+import { hashInviteLink } from "@/lib/telegram-channel-access";
+import {
+    approveChannelJoinRequest,
+    declineChannelJoinRequest,
+    getChannelMember,
+    isActiveChannelMember,
+    isConfiguredChannel,
+    revokeChannelInviteLink,
+} from "@/lib/telegram-channel";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -45,6 +57,14 @@ const LINK_INVALID_MESSAGE =
     "Tautan penghubung tidak valid atau sudah kedaluwarsa. Silakan " +
     "kembali ke website untuk membuat tautan baru.";
 
+const JOIN_REQUEST_APPROVED_MESSAGE =
+    "Permintaan bergabung ke private channel sudah disetujui. Silakan " +
+    "buka channel Telegram Anda.";
+
+const JOIN_REQUEST_DECLINED_MESSAGE =
+    "Permintaan bergabung tidak dapat diproses. Silakan ambil tautan " +
+    "baru dari website.";
+
 // Matches "/start", "/start TOKEN", "/start@BotUsername", and
 // "/start@BotUsername TOKEN" — nothing else. Group 1 captures the raw
 // token when present.
@@ -57,6 +77,12 @@ type LinkOutcome =
     | { kind: "already-linked-other" }
     | { kind: "telegram-account-taken" }
     | { kind: "invalid" };
+
+// "ok": fully handled (approved, declined, ignored — nothing more to
+// do). "retry": a transient failure occurred while a join request
+// should have been approved; returning a non-2xx status tells Telegram
+// to redeliver this update so we get another chance.
+type JoinRequestOutcome = "ok" | "retry";
 
 function isValidSecretToken(receivedSecret: string | null): boolean {
     const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
@@ -297,10 +323,315 @@ function handleMyChatMember(update: TelegramChatMemberUpdated) {
     });
 }
 
-function handleChatJoinRequest(_update: TelegramChatJoinRequest) {
-    // Intentionally not processed in this milestone: no approve,
-    // decline, invite link, or channel access grant. Handled in
-    // Milestone 13.
+// --- chat_join_request handling -------------------------------------
+
+async function declineSafely(telegramUserId: number) {
+    try {
+        await declineChannelJoinRequest(telegramUserId);
+    } catch (error) {
+        console.error(
+            "Channel join request decline failed:",
+            error instanceof Error ? error.name : "unknown error",
+        );
+    }
+
+    await sendSafeMessage(telegramUserId, JOIN_REQUEST_DECLINED_MESSAGE);
+}
+
+async function grantAccess(accessId: string, telegramUserId: number) {
+    const current = await prisma.telegramAccess.findUnique({
+        where: { id: accessId },
+        select: { inviteLink: true, status: true },
+    });
+
+    if (current?.status === "GRANTED") {
+        return;
+    }
+
+    if (current?.inviteLink) {
+        try {
+            await revokeChannelInviteLink(current.inviteLink);
+        } catch (error) {
+            console.error(
+                "Channel join request: post-approve revoke failed:",
+                error instanceof Error ? error.name : "unknown error",
+            );
+        }
+    }
+
+    await prisma.telegramAccess.update({
+        where: { id: accessId },
+        data: {
+            status: "GRANTED",
+            grantedAt: new Date(),
+            inviteLink: null,
+            inviteLinkHash: null,
+            inviteLinkName: null,
+            inviteExpiresAt: null,
+        },
+    });
+}
+
+/**
+ * Recovery path used both when an access record is unexpectedly already
+ * "REQUESTED" (a previous attempt may have approved on Telegram's side
+ * but failed to save that locally) and after a failed
+ * approveChatJoinRequest call. Trusts Telegram's live membership over
+ * local state.
+ */
+async function reconcileStuckRequest(
+    accessId: string,
+    telegramUserId: number,
+): Promise<JoinRequestOutcome> {
+    try {
+        const member = await getChannelMember(telegramUserId);
+
+        if (isActiveChannelMember(member.status)) {
+            await grantAccess(accessId, telegramUserId);
+            await sendSafeMessage(
+                telegramUserId,
+                JOIN_REQUEST_APPROVED_MESSAGE,
+            );
+            return "ok";
+        }
+    } catch (error) {
+        console.error(
+            "Channel join request: reconciliation getChatMember failed:",
+            error instanceof Error ? error.name : "unknown error",
+        );
+    }
+
+    // Not (yet) a member and nothing more we can safely do here — this
+    // specific join request appears gone. Revert to INVITED so the
+    // underlying invite link (if still valid) remains usable for a
+    // fresh join request.
+    await prisma.telegramAccess
+        .updateMany({
+            where: { id: accessId, status: "REQUESTED" },
+            data: { status: "INVITED" },
+        })
+        .catch(() => {});
+
+    return "ok";
+}
+
+async function handleApproveFailure(
+    accessId: string,
+    telegramUserId: number,
+    error: unknown,
+): Promise<JoinRequestOutcome> {
+    console.error(
+        "Channel join request: approveChatJoinRequest failed:",
+        error instanceof Error ? error.name : "unknown error",
+    );
+
+    if (
+        error instanceof TelegramNetworkError ||
+        error instanceof TelegramTimeoutError ||
+        error instanceof TelegramConfigError
+    ) {
+        // Genuinely transient/systemic — undo the claim so a retried
+        // delivery of this same update can attempt approval again.
+        await prisma.telegramAccess
+            .update({
+                where: { id: accessId },
+                data: { status: "INVITED" },
+            })
+            .catch(() => {});
+        return "retry";
+    }
+
+    // A TelegramApiError here typically means Telegram no longer has
+    // this join request (e.g. "request not found") — reconcile via live
+    // membership rather than assume failure.
+    return reconcileStuckRequest(accessId, telegramUserId);
+}
+
+async function approveAndFinalize(
+    accessId: string,
+    telegramUserId: number,
+): Promise<JoinRequestOutcome> {
+    try {
+        await approveChannelJoinRequest(telegramUserId);
+    } catch (error) {
+        return handleApproveFailure(accessId, telegramUserId, error);
+    }
+
+    try {
+        await grantAccess(accessId, telegramUserId);
+    } catch (dbError) {
+        console.error(
+            "Channel join request: post-approve DB update failed:",
+            dbError instanceof Error ? dbError.name : "unknown error",
+        );
+        // Telegram-side approval already succeeded; leave status
+        // REQUESTED so a retried delivery reconciles via getChatMember
+        // instead of re-approving.
+        return "retry";
+    }
+
+    await sendSafeMessage(telegramUserId, JOIN_REQUEST_APPROVED_MESSAGE);
+    return "ok";
+}
+
+async function processJoinRequest(
+    request: TelegramChatJoinRequest,
+): Promise<JoinRequestOutcome> {
+    if (
+        !isConfiguredChannel(request.chat.id) ||
+        request.chat.type !== "channel"
+    ) {
+        // Not the configured channel, or somehow not a channel at all
+        // (e.g. a linked discussion group) — out of scope, ignore.
+        return "ok";
+    }
+
+    const telegramUserId = request.from?.id;
+
+    if (!telegramUserId) {
+        return "ok";
+    }
+
+    const rawInviteLink = request.invite_link?.invite_link;
+
+    if (!rawInviteLink) {
+        await declineSafely(telegramUserId);
+        return "ok";
+    }
+
+    const inviteLinkHash = hashInviteLink(rawInviteLink);
+
+    const access = await prisma.telegramAccess.findUnique({
+        where: { inviteLinkHash },
+        select: {
+            id: true,
+            status: true,
+            inviteExpiresAt: true,
+            telegramAccount: { select: { telegramUserId: true } },
+            order: { select: { status: true } },
+        },
+    });
+
+    if (!access) {
+        await declineSafely(telegramUserId);
+        return "ok";
+    }
+
+    if (access.telegramAccount.telegramUserId !== String(telegramUserId)) {
+        await declineSafely(telegramUserId);
+        return "ok";
+    }
+
+    if (access.order.status !== "PAID") {
+        await declineSafely(telegramUserId);
+        return "ok";
+    }
+
+    if (access.status === "GRANTED") {
+        // Duplicate delivery after success — idempotent no-op.
+        return "ok";
+    }
+
+    if (access.status === "REQUESTED") {
+        return reconcileStuckRequest(access.id, telegramUserId);
+    }
+
+    if (access.status !== "INVITED") {
+        // REVOKED / FAILED / ELIGIBLE — nothing valid to approve.
+        await declineSafely(telegramUserId);
+        return "ok";
+    }
+
+    if (
+        !access.inviteExpiresAt ||
+        access.inviteExpiresAt.getTime() <= Date.now()
+    ) {
+        await declineSafely(telegramUserId);
+        return "ok";
+    }
+
+    // Atomic conditional claim: only one concurrent delivery of this
+    // update can move this specific access row from INVITED to
+    // REQUESTED. A lost race means another delivery is already handling
+    // it — let it finish.
+    const claimed = await prisma.telegramAccess.updateMany({
+        where: { id: access.id, status: "INVITED" },
+        data: { status: "REQUESTED", joinRequestedAt: new Date() },
+    });
+
+    if (claimed.count !== 1) {
+        return "ok";
+    }
+
+    return approveAndFinalize(access.id, telegramUserId);
+}
+
+async function shouldSkipDuplicateJoinRequest(
+    updateId: string,
+): Promise<boolean> {
+    const existing = await prisma.telegramWebhookEvent.findUnique({
+        where: { updateId },
+        select: { status: true },
+    });
+
+    return existing?.status === "done";
+}
+
+async function recordJoinRequestEvent(updateId: string, status: string) {
+    await prisma.telegramWebhookEvent
+        .upsert({
+            where: { updateId },
+            create: {
+                updateId,
+                eventType: "chat_join_request",
+                status,
+                processedAt: status === "done" ? new Date() : null,
+            },
+            update: {
+                status,
+                processedAt: status === "done" ? new Date() : null,
+            },
+        })
+        .catch((error) => {
+            console.error(
+                "Failed to record Telegram webhook event:",
+                error instanceof Error ? error.name : "unknown error",
+            );
+        });
+}
+
+async function handleChatJoinRequest(
+    request: TelegramChatJoinRequest,
+    updateId: string,
+): Promise<JoinRequestOutcome> {
+    // Idempotency fast path: if we already fully processed this exact
+    // update_id to completion, skip re-processing entirely. Anything
+    // not marked "done" (including a previous "retry") is safe to
+    // reprocess — every step above is itself idempotent via the
+    // conditional updateMany claim and the reconciliation fallbacks.
+    if (await shouldSkipDuplicateJoinRequest(updateId)) {
+        return "ok";
+    }
+
+    let outcome: JoinRequestOutcome;
+
+    try {
+        outcome = await processJoinRequest(request);
+    } catch (error) {
+        console.error(
+            "Channel join request: unexpected processing error:",
+            error instanceof Error ? error.name : "unknown error",
+        );
+        await recordJoinRequestEvent(updateId, "failed");
+        return "retry";
+    }
+
+    // Only ever marked "done" once processing has fully completed — a
+    // "retry" outcome is recorded as "failed" so a redelivery is not
+    // treated as a duplicate.
+    await recordJoinRequestEvent(updateId, outcome === "ok" ? "done" : "failed");
+
+    return outcome;
 }
 
 export async function POST(request: Request) {
@@ -336,17 +667,32 @@ export async function POST(request: Request) {
         );
     }
 
+    if (update.chat_join_request) {
+        const outcome = await handleChatJoinRequest(
+            update.chat_join_request,
+            String(update.update_id),
+        );
+
+        if (outcome === "retry") {
+            return NextResponse.json(
+                { message: "Gangguan sementara" },
+                { status: 503 },
+            );
+        }
+
+        return NextResponse.json({ ok: true });
+    }
+
     try {
         if (update.message) {
             await handleMessage(update.message);
         } else if (update.my_chat_member) {
             handleMyChatMember(update.my_chat_member);
-        } else if (update.chat_join_request) {
-            handleChatJoinRequest(update.chat_join_request);
         }
     } catch (error) {
         // Any unexpected handler failure still returns 200 so Telegram
-        // does not endlessly retry this update.
+        // does not endlessly retry this update — unlike
+        // chat_join_request, retrying these has no benefit.
         console.error("Telegram webhook handler error:", error);
     }
 

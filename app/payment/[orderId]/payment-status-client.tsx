@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { TelegramLinkSection } from "./telegram-link-section";
+import { TelegramChannelAccessSection } from "./telegram-channel-access-section";
 
 const POLL_INTERVAL_MS = 4000;
 
@@ -15,7 +16,8 @@ type PaymentStatus =
     | "FAILED"
     | "REFUNDED"
     | "PARTIALLY_REFUNDED"
-    | "CHARGEBACK";
+    | "CHARGEBACK"
+    | "PARTIAL_CHARGEBACK";
 
 type OrderData = {
     orderId: string;
@@ -45,6 +47,20 @@ const FINAL_STATUSES: PaymentStatus[] = [
     "REFUNDED",
     "PARTIALLY_REFUNDED",
     "CHARGEBACK",
+    "PARTIAL_CHARGEBACK",
+];
+
+// Statuses after which a previously-linked Telegram account may still
+// have a revocation-relevant TelegramAccess record worth showing —
+// see TelegramChannelAccessSection below. Kept separate from
+// FINAL_STATUSES since this list is specifically about Telegram
+// access visibility, not order polling.
+const TELEGRAM_ACCESS_RELEVANT_STATUSES: PaymentStatus[] = [
+    "PAID",
+    "REFUNDED",
+    "PARTIALLY_REFUNDED",
+    "CHARGEBACK",
+    "PARTIAL_CHARGEBACK",
 ];
 
 const currencyFormatter = new Intl.NumberFormat("id-ID", {
@@ -111,6 +127,13 @@ const STATUS_PRESENTATION: Record<PaymentStatus, StatusPresentation> = {
     CHARGEBACK: {
         title: "Pembayaran mengalami chargeback",
         description: "Silakan hubungi customer support.",
+        badgeClassName: "border-[#E3B4B4] bg-[#FBEAEA] text-[#B14545]",
+        icon: "⚠️",
+    },
+    PARTIAL_CHARGEBACK: {
+        title: "Sebagian pembayaran mengalami chargeback",
+        description:
+            "Status akses sedang diperiksa. Silakan hubungi customer support.",
         badgeClassName: "border-[#E3B4B4] bg-[#FBEAEA] text-[#B14545]",
         icon: "⚠️",
     },
@@ -306,6 +329,10 @@ function OrderDetails({ order }: { order: OrderData }) {
         STATUS_PRESENTATION[order.status] ?? FALLBACK_PRESENTATION;
     const isPending = order.status === "PENDING";
     const isPaid = order.status === "PAID";
+    const showTelegramFlow = TELEGRAM_ACCESS_RELEVANT_STATUSES.includes(
+        order.status,
+    );
+    const [telegramLinked, setTelegramLinked] = useState(false);
 
     return (
         <div className="space-y-6">
@@ -370,7 +397,23 @@ function OrderDetails({ order }: { order: OrderData }) {
                 </p>
             ) : null}
 
-            {isPaid ? <TelegramLinkSection orderId={order.orderId} /> : null}
+            {!isPaid && !showTelegramFlow ? (
+                <p className="rounded-2xl border border-[#D8D2C0] bg-[#F3EFE3] px-4 py-3 text-sm leading-6 text-[#5B5546]">
+                    Akses ke private Telegram channel akan tersedia setelah
+                    pembayaran kamu berhasil dikonfirmasi.
+                </p>
+            ) : null}
+
+            {showTelegramFlow ? (
+                <TelegramLinkSection
+                    orderId={order.orderId}
+                    onLinkedChange={setTelegramLinked}
+                />
+            ) : null}
+
+            {showTelegramFlow && telegramLinked ? (
+                <TelegramChannelAccessSection orderId={order.orderId} />
+            ) : null}
         </div>
     );
 }

@@ -74,6 +74,7 @@ export type TelegramChatMember = {
     status: TelegramChatMemberStatus;
     user: TelegramUser;
     can_invite_users?: boolean;
+    can_restrict_members?: boolean;
 };
 
 export type TelegramMessage = {
@@ -96,11 +97,23 @@ export type TelegramChatMemberUpdated = {
     new_chat_member: TelegramChatMember;
 };
 
+export type TelegramChatInviteLink = {
+    invite_link: string;
+    creator: TelegramUser;
+    creates_join_request: boolean;
+    is_primary: boolean;
+    is_revoked: boolean;
+    name?: string;
+    expire_date?: number;
+    member_limit?: number;
+};
+
 export type TelegramChatJoinRequest = {
     chat: TelegramChat;
     from: TelegramUser;
     date: number;
     bio?: string;
+    invite_link?: TelegramChatInviteLink;
 };
 
 export type TelegramUpdate = {
@@ -252,5 +265,89 @@ export async function setTelegramWebhook(params: {
         url: params.url,
         secret_token: params.secretToken,
         allowed_updates: params.allowedUpdates,
+    });
+}
+
+export async function createChatInviteLink(params: {
+    chatId: number | string;
+    name?: string;
+    expireDate?: number;
+    createsJoinRequest?: boolean;
+}): Promise<TelegramChatInviteLink> {
+    return telegramRequest<TelegramChatInviteLink>(
+        "createChatInviteLink",
+        {
+            chat_id: params.chatId,
+            name: params.name,
+            expire_date: params.expireDate,
+            creates_join_request: params.createsJoinRequest,
+        },
+    );
+}
+
+export async function revokeChatInviteLink(
+    chatId: number | string,
+    inviteLink: string,
+): Promise<TelegramChatInviteLink> {
+    return telegramRequest<TelegramChatInviteLink>(
+        "revokeChatInviteLink",
+        {
+            chat_id: chatId,
+            invite_link: inviteLink,
+        },
+    );
+}
+
+export async function approveChatJoinRequest(
+    chatId: number | string,
+    userId: number,
+): Promise<boolean> {
+    return telegramRequest<boolean>("approveChatJoinRequest", {
+        chat_id: chatId,
+        user_id: userId,
+    });
+}
+
+export async function declineChatJoinRequest(
+    chatId: number | string,
+    userId: number,
+): Promise<boolean> {
+    return telegramRequest<boolean>("declineChatJoinRequest", {
+        chat_id: chatId,
+        user_id: userId,
+    });
+}
+
+/**
+ * Removes a member from the chat. Used as the first half of a
+ * ban-then-unban removal — see unbanChatMember and
+ * lib/telegram-access-revocation.ts — never as a permanent block on
+ * its own.
+ */
+export async function banChatMember(
+    chatId: number | string,
+    userId: number,
+): Promise<boolean> {
+    return telegramRequest<boolean>("banChatMember", {
+        chat_id: chatId,
+        user_id: userId,
+    });
+}
+
+/**
+ * Lifts a ban so the user is free to rejoin later through a fresh
+ * invite flow, without being auto-added back. `onlyIfBanned: true`
+ * makes this a safe no-op (still `ok: true`) when the user was never
+ * banned, so callers can call it idempotently during reconciliation.
+ */
+export async function unbanChatMember(
+    chatId: number | string,
+    userId: number,
+    onlyIfBanned = true,
+): Promise<boolean> {
+    return telegramRequest<boolean>("unbanChatMember", {
+        chat_id: chatId,
+        user_id: userId,
+        only_if_banned: onlyIfBanned,
     });
 }

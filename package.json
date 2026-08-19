@@ -5,13 +5,15 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:production": "prisma generate && next build",
     "postinstall": "prisma generate",
     "db:migrate:dev": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
     "start": "next start",
     "lint": "eslint",
     "telegram:webhook:set": "node --env-file=.env.local scripts/setup-telegram-webhook.mjs",
-    "telegram:check": "node --env-file=.env.local scripts/check-telegram-bot.mjs"
+    "telegram:check": "node --env-file=.env.local scripts/check-telegram-bot.mjs",
+    "telegram:reconcile": "tsx --env-file=.env.local scripts/reconcile-telegram-access.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",

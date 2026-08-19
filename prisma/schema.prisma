@@ -16,6 +16,33 @@ enum PaymentStatus {
   REFUNDED
   PARTIALLY_REFUNDED
   CHARGEBACK
+  // Distinct from CHARGEBACK (full): Milestone 14 policy keeps access
+  // intact and requires manual review for a partial chargeback rather
+  // than auto-revoking — see lib/telegram-entitlement.ts.
+  PARTIAL_CHARGEBACK
+}
+
+enum TelegramAccessStatus {
+  ELIGIBLE
+  INVITED
+  REQUESTED
+  GRANTED
+  REVOKED
+  FAILED
+  // Milestone 14 revocation lifecycle additions.
+  REVOCATION_PENDING
+  REVOCATION_FAILED
+  MANUAL_REVIEW
+}
+
+// Outcome of the Telegram-side removal attempt during revocation —
+// stored for audit, distinct from TelegramAccessStatus which tracks
+// the access record's own lifecycle state.
+enum TelegramRemovalOutcome {
+  REMOVED
+  ALREADY_NOT_MEMBER
+  SKIPPED_OTHER_ENTITLEMENT
+  MANUAL_REVIEW_REQUIRED
 }
 
 model Registration {
@@ -30,25 +57,30 @@ model Registration {
 }
 
 model Order {
-  id                     String        @id @default(cuid())
-  orderNumber            String        @unique
-  registrationId         String
-  amount                 Int
-  status                 PaymentStatus @default(PENDING)
-  snapToken              String?
-  snapRedirectUrl        String?
-  midtransTransactionId  String?       @unique
-  paymentType            String?
-  paidAt                 DateTime?
-  createdAt              DateTime      @default(now())
-  updatedAt              DateTime      @updatedAt
+  id                    String        @id @default(cuid())
+  orderNumber           String        @unique
+  registrationId        String
+  amount                Int
+  status                PaymentStatus @default(PENDING)
+  snapToken             String?
+  snapRedirectUrl       String?
+  midtransTransactionId String?       @unique
+  paymentType           String?
+  paidAt                DateTime?
+  // Cumulative amount refunded so far, sourced only from Midtrans'
+  // server-side transaction status (`refund_amount`) — never from the
+  // browser. Used to distinguish a full refund (by value) from a
+  // partial one; see lib/telegram-entitlement.ts.
+  refundedAmount        Int           @default(0)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
 
-  registration Registration          @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
 
   webhookEvents      PaymentWebhookEvent[]
   telegramLinkTokens TelegramLinkToken[]
+  telegramAccess     TelegramAccess?
 }
-
 
 model PaymentWebhookEvent {
   id                String   @id @default(cuid())
@@ -75,6 +107,8 @@ model TelegramAccount {
   updatedAt      DateTime @updatedAt
 
   registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+
+  telegramAccesses TelegramAccess[]
 }
 
 // Token linking sekali pakai untuk /start TOKEN. Hanya hash yang disimpan,
@@ -91,4 +125,68 @@ model TelegramLinkToken {
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId, expiresAt])
+}
+
+// Akses ke private Telegram channel untuk satu Order. `inviteLink` mentah
+// disimpan sementara (perlu untuk revokeChatInviteLink) dan diperlakukan
+// sebagai bearer secret: dikosongkan setelah GRANTED/REVOKED, tidak pernah
+// di-log, tidak pernah diekspos lewat endpoint status umum.
+// `inviteLinkHash` (SHA-256) dipakai untuk mencocokkan invite_link yang
+// dikirim Telegram lewat update chat_join_request.
+model TelegramAccess {
+  id                String               @id @default(cuid())
+  orderId           String               @unique
+  telegramAccountId String
+  status            TelegramAccessStatus @default(ELIGIBLE)
+
+  inviteLink      String?
+  inviteLinkHash  String?   @unique
+  inviteLinkName  String?
+  inviteExpiresAt DateTime?
+
+  joinRequestedAt DateTime?
+  grantedAt       DateTime?
+  revokedAt       DateTime?
+
+  lastErrorCode String?
+
+  // Milestone 14 — revocation lifecycle. `operationVersion` backs
+  // optimistic-concurrency conditional updates so only one worker can
+  // claim a given revocation attempt at a time (see
+  // lib/telegram-access-revocation.ts). `revocationReason` only ever
+  // holds an internal code (e.g. FULL_REFUND, CHARGEBACK) — never a raw
+  // Telegram/Midtrans error message or PII.
+  revocationReason        String?
+  revocationRequestedAt   DateTime?
+  revocationStartedAt     DateTime?
+  revocationAttemptCount  Int                     @default(0)
+  lastRevocationAttemptAt DateTime?
+  nextRevocationAttemptAt DateTime?
+  lastRevocationErrorCode String?
+  removalOutcome          TelegramRemovalOutcome?
+  operationVersion        Int                     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  order           Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  telegramAccount TelegramAccount @relation(fields: [telegramAccountId], references: [id], onDelete: Cascade)
+
+  @@index([telegramAccountId])
+  @@index([status])
+  @@index([inviteExpiresAt])
+  @@index([nextRevocationAttemptAt])
+}
+
+// Idempotency ledger untuk Telegram update — mencegah update yang
+// dikirim ulang oleh Telegram (retry) diproses dua kali, terutama
+// chat_join_request yang memicu approveChatJoinRequest.
+model TelegramWebhookEvent {
+  id          String    @id @default(cuid())
+  updateId    String    @unique
+  eventType   String
+  status      String
+  processedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 }

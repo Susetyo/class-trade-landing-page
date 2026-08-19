@@ -33,9 +33,13 @@ const PRIMARY_BUTTON_CLASSNAME =
 
 type TelegramLinkSectionProps = {
     orderId: string;
+    onLinkedChange?: (linked: boolean) => void;
 };
 
-export function TelegramLinkSection({ orderId }: TelegramLinkSectionProps) {
+export function TelegramLinkSection({
+    orderId,
+    onLinkedChange,
+}: TelegramLinkSectionProps) {
     const [state, setState] = useState<LinkState>({ phase: "checking" });
 
     const mountedRef = useRef(false);
@@ -49,6 +53,16 @@ export function TelegramLinkSection({ orderId }: TelegramLinkSectionProps) {
         phaseRef.current = state.phase;
         expiresAtRef.current = state.phase === "waiting" ? state.expiresAt : null;
     }, [state]);
+
+    const onLinkedChangeRef = useRef(onLinkedChange);
+
+    useEffect(() => {
+        onLinkedChangeRef.current = onLinkedChange;
+    }, [onLinkedChange]);
+
+    useEffect(() => {
+        onLinkedChangeRef.current?.(state.phase === "linked");
+    }, [state.phase]);
 
     const clearScheduledPoll = useCallback(() => {
         pollingRef.current = false;
@@ -253,7 +267,7 @@ export function TelegramLinkSection({ orderId }: TelegramLinkSectionProps) {
                         onClick={handleConnect}
                         className={PRIMARY_BUTTON_CLASSNAME}
                     >
-                        Hubungkan Telegram
+                        Hubungkan Akun Telegram
                     </button>
                 ) : null}
 
@@ -313,9 +327,6 @@ export function TelegramLinkSection({ orderId }: TelegramLinkSectionProps) {
                 {state.phase === "linked" ? (
                     <p className="rounded-2xl border border-[#B7D2A4] bg-[#EEF5E6] px-4 py-3 text-sm leading-6 text-[#365C2A]">
                         Akun Telegram berhasil terhubung.
-                        <br />
-                        Akses private channel akan tersedia pada langkah
-                        berikutnya.
                     </p>
                 ) : null}
 
