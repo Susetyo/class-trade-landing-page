@@ -25,7 +25,8 @@ model Registration {
   phone     String?
   createdAt DateTime @default(now())
 
-  orders Order[]
+  orders          Order[]
+  telegramAccount TelegramAccount?
 }
 
 model Order {
@@ -44,7 +45,8 @@ model Order {
 
   registration Registration          @relation(fields: [registrationId], references: [id], onDelete: Cascade)
 
-  webhookEvents PaymentWebhookEvent[]
+  webhookEvents      PaymentWebhookEvent[]
+  telegramLinkTokens TelegramLinkToken[]
 }
 
 
@@ -60,4 +62,33 @@ model PaymentWebhookEvent {
   order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@index([orderId])
+}
+
+// Menghubungkan satu Registration dengan numeric Telegram user ID
+// (disimpan sebagai String agar aman untuk ID besar tanpa presisi BigInt).
+model TelegramAccount {
+  id             String   @id @default(cuid())
+  registrationId String   @unique
+  telegramUserId String   @unique
+  linkedAt       DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+}
+
+// Token linking sekali pakai untuk /start TOKEN. Hanya hash yang disimpan,
+// raw token tidak pernah ditulis ke database.
+model TelegramLinkToken {
+  id        String    @id @default(cuid())
+  orderId   String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  revokedAt DateTime?
+  createdAt DateTime  @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  @@index([orderId, expiresAt])
 }

@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
+import { TelegramLinkSection } from "./telegram-link-section";
+
 const POLL_INTERVAL_MS = 4000;
 
 type PaymentStatus =
@@ -367,6 +369,8 @@ function OrderDetails({ order }: { order: OrderData }) {
                     nomor WhatsApp kamu.
                 </p>
             ) : null}
+
+            {isPaid ? <TelegramLinkSection orderId={order.orderId} /> : null}
         </div>
     );
 }

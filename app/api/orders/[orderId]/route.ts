@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
+import { isValidOrderId } from "@/lib/order-access";
 import type { PaymentStatus } from "@/app/generated/prisma/enums";
 
 export const runtime = "nodejs";
@@ -24,8 +25,6 @@ type ErrorResponse = {
     message: string;
 };
 
-const ORDER_ID_PATTERN = /^[a-zA-Z0-9_-]{1,64}$/;
-
 const NO_STORE_HEADERS = {
     "Cache-Control": "no-store, no-cache, must-revalidate",
 };
@@ -37,7 +36,7 @@ export async function GET(
     try {
         const { orderId } = await params;
 
-        if (!orderId || !ORDER_ID_PATTERN.test(orderId)) {
+        if (!orderId || !isValidOrderId(orderId)) {
             return NextResponse.json<ErrorResponse>(
                 { message: "Order ID tidak valid" },
                 { status: 400, headers: NO_STORE_HEADERS },

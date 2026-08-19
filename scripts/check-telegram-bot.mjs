@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 
 /**
- * Memverifikasi konfigurasi Telegram bot: token, webhook, dan
- * (jika TELEGRAM_GROUP_ID diset) status admin bot di grup/channel
- * tujuan.
+ * Memverifikasi konfigurasi Telegram bot: token, webhook, dan (jika
+ * TELEGRAM_CHANNEL_ID diset) status admin bot di private channel
+ * tujuan. Target project ini adalah private Telegram channel — bukan
+ * group/supergroup — jadi verifikasi ini menolak tipe chat selain
+ * `channel`.
  *
  * Jalankan dengan:
  *   node --env-file=.env.local scripts/check-telegram-bot.mjs
@@ -95,33 +97,31 @@ async function checkWebhook(botToken) {
     );
 }
 
-const SUPPORTED_TARGET_CHAT_TYPES = ["group", "supergroup", "channel"];
-
-async function checkGroup(botToken, groupId, botId) {
-    console.log("=== Verifikasi Target Chat (Grup/Channel) ===");
+async function checkChannel(botToken, channelId, botId) {
+    console.log("=== Verifikasi Private Channel ===");
 
     const chat = await callTelegram(botToken, "getChat", {
-        chat_id: groupId,
+        chat_id: channelId,
     });
 
     console.log(`Chat title: ${chat.title ?? "-"}`);
     console.log(`Chat type: ${chat.type}`);
 
-    if (!SUPPORTED_TARGET_CHAT_TYPES.includes(chat.type)) {
+    if (chat.type !== "channel") {
         console.error(
-            "\nError: TELEGRAM_GROUP_ID bukan group, supergroup, " +
-                "atau channel.",
+            "\nError: TELEGRAM_CHANNEL_ID harus menunjuk ke Telegram " +
+                "channel, bukan group atau supergroup.",
         );
         process.exitCode = 1;
         return;
     }
 
     const member = await callTelegram(botToken, "getChatMember", {
-        chat_id: groupId,
+        chat_id: channelId,
         user_id: botId,
     });
 
-    console.log(`Bot status di chat: ${member.status}`);
+    console.log(`Bot status di channel: ${member.status}`);
 
     const isAdmin =
         member.status === "administrator" || member.status === "creator";
@@ -133,34 +133,44 @@ async function checkGroup(botToken, groupId, botId) {
             ? true
             : member.can_invite_users === true;
 
-    if (!isAdmin || !canInviteUsers) {
+    if (!isAdmin) {
         console.error(
-            "\nTambahkan bot sebagai administrator dan aktifkan " +
-                "permission Invite Users pada chat tersebut.",
+            "\nTambahkan bot sebagai administrator pada private " +
+                "channel tersebut.",
         );
         process.exitCode = 1;
         return;
     }
 
-    console.log("Permission can_invite_users: aktif");
-    console.log("\nVerifikasi target chat berhasil.");
+    if (!canInviteUsers) {
+        console.error(
+            "\nAktifkan permission Invite Users untuk bot pada " +
+                "private channel tersebut.",
+        );
+        process.exitCode = 1;
+        return;
+    }
+
+    console.log("\nTelegram channel terverifikasi");
+    console.log("Bot adalah administrator channel");
+    console.log("Permission Invite Users aktif");
 }
 
 async function main() {
     const botToken = requireEnv("TELEGRAM_BOT_TOKEN");
-    const groupId = process.env.TELEGRAM_GROUP_ID;
+    const channelId = process.env.TELEGRAM_CHANNEL_ID;
 
     const me = await checkBot(botToken);
     await checkWebhook(botToken);
 
-    if (!groupId) {
+    if (!channelId) {
         console.log(
-            "TELEGRAM_GROUP_ID tidak diset — verifikasi target chat dilewati.",
+            "TELEGRAM_CHANNEL_ID tidak diset — verifikasi channel dilewati.",
         );
         return;
     }
 
-    await checkGroup(botToken, groupId, me.id);
+    await checkChannel(botToken, channelId, me.id);
 }
 
 main().catch((error) => {

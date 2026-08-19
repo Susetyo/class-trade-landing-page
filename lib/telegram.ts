@@ -82,6 +82,10 @@ export type TelegramMessage = {
     chat: TelegramChat;
     from?: TelegramUser;
     text?: string;
+    // Presence of either field means this message was forwarded rather
+    // than typed/tapped directly by the sender.
+    forward_date?: number;
+    forward_origin?: unknown;
 };
 
 export type TelegramChatMemberUpdated = {
