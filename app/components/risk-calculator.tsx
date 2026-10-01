@@ -66,7 +66,7 @@ export function RiskCalculator() {
         <div className="rounded-[32px] border border-[#E4DDCE] bg-[#FBF8F1] p-6 shadow-[0_18px_54px_rgba(28,37,19,0.08)] sm:p-8">
           <div>
             <label className="text-sm font-bold text-[#102016]">Capital</label>
-            <div className="mt-3 flex items-stretch gap-2">
+            <div className="mt-3 flex flex-col items-stretch gap-2 sm:flex-row">
               <div className="flex shrink-0 overflow-hidden rounded-2xl border border-[#E4DDCE] bg-white">
                 {(["USD", "IDR"] as Currency[]).map((option) => (
                   <button
@@ -89,7 +89,7 @@ export function RiskCalculator() {
                 inputMode="decimal"
                 value={capital}
                 onChange={(event) => setCapital(Number(event.target.value))}
-                className="w-full rounded-2xl border border-[#E4DDCE] bg-white px-4 py-3 text-sm font-semibold text-[#102016] outline-none focus:border-[#365C2A]"
+                className="min-w-0 w-full rounded-2xl border border-[#E4DDCE] bg-white px-4 py-3 text-sm font-semibold text-[#102016] outline-none focus:border-[#365C2A]"
                 placeholder={`e.g. ${DEFAULT_CAPITAL[currency]}`}
               />
             </div>

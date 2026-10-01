@@ -168,6 +168,11 @@ export function PaymentStatusClient({ orderId }: PaymentStatusClientProps) {
         }
     }, []);
 
+    // Indirection for the recursive poll below — calling `fetchOrder`
+    // directly from inside its own body creates a self-reference that
+    // is stale by construction until assignment completes.
+    const fetchOrderRef = useRef<(options?: { silent?: boolean }) => void>(() => {});
+
     const fetchOrder = useCallback(
         async (options?: { silent?: boolean }) => {
             abortRef.current?.abort();
@@ -205,7 +210,7 @@ export function PaymentStatusClient({ orderId }: PaymentStatusClientProps) {
 
                 if (!isFinalStatus(result.data.status)) {
                     timeoutRef.current = setTimeout(() => {
-                        fetchOrder({ silent: true });
+                        fetchOrderRef.current({ silent: true });
                     }, POLL_INTERVAL_MS);
                 }
             } catch (error) {
@@ -220,7 +225,14 @@ export function PaymentStatusClient({ orderId }: PaymentStatusClientProps) {
     );
 
     useEffect(() => {
+        fetchOrderRef.current = fetchOrder;
+    }, [fetchOrder]);
+
+    useEffect(() => {
         mountedRef.current = true;
+        // Intentional fetch-on-mount + self-scheduled poll — not a
+        // derived-state update this effect could avoid.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         fetchOrder();
 
         return () => {

@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
 import { isValidOrderId } from "@/lib/order-access";
+import { checkRateLimit, RATE_LIMITS, rateLimitResponseInit } from "@/lib/rate-limit";
+import { getClientIp } from "@/lib/request-context";
+import { captureException } from "@/lib/error-monitoring";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -19,6 +22,18 @@ type LinkStatusResponse = {
 };
 
 export async function GET(request: Request) {
+    const rateLimit = await checkRateLimit({
+        key: `telegram.link_status:${getClientIp(request)}`,
+        ...RATE_LIMITS.TELEGRAM_ACTION,
+    });
+
+    if (!rateLimit.allowed) {
+        return NextResponse.json<ErrorResponse>(
+            { message: "Terlalu banyak permintaan." },
+            rateLimitResponseInit(rateLimit, NO_STORE_HEADERS),
+        );
+    }
+
     try {
         const url = new URL(request.url);
         const orderId = url.searchParams.get("orderId") ?? "";
@@ -67,7 +82,10 @@ export async function GET(request: Request) {
             { status: 200, headers: NO_STORE_HEADERS },
         );
     } catch (error) {
-        console.error("Get Telegram link status error:", error);
+        captureException(error, {
+            operation: "telegram.link_status",
+            expected: false,
+        });
 
         return NextResponse.json<ErrorResponse>(
             { message: "Gagal memuat status Telegram" },

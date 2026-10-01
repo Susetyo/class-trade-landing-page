@@ -8,6 +8,8 @@ Landing page kelas trading dengan visual dark premium fintech, dibuat dengan Nex
 
 ```bash
 npm install
+cp .env.example .env.local   # isi dengan nilai lokal/sandbox kamu
+npx prisma migrate deploy
 npm run dev
 ```
 
@@ -16,6 +18,27 @@ Buka:
 ```txt
 http://localhost:3000
 ```
+
+## Testing
+
+```bash
+npm run test
+```
+
+## Security & Reliability
+
+Payment (Midtrans) dan Telegram bot integration project ini punya
+lapisan security & reliability (input validation, rate limiting,
+idempotency, retry/timeout, structured logging dengan PII masking,
+payment reconciliation, error monitoring, privacy consent, dan
+backup/restore). Lihat:
+
+- [`docs/security-reliability.md`](docs/security-reliability.md) —
+  environment variables, security controls, cara migration &
+  reconciliation, backup/restore runbook, keterbatasan desain.
+- [`docs/telegram-setup.md`](docs/telegram-setup.md) — setup bot
+  Telegram, webhook secret, account linking, channel access &
+  revocation.
 
 ## File utama
 

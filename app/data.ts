@@ -76,7 +76,7 @@ export const pricingPlans: PricingPlan[] = [
     description: "Perfect for new traders.",
     price: "Rp 500K",
     cta: "Join Foundation",
-    href: "mailto:hello@kafeinmatcha.academy?subject=Join%20Core%20Foundation",
+    href: "/register",
     features: [
       "Market structure & mapping",
       "Risk management setup",
@@ -91,7 +91,7 @@ export const pricingPlans: PricingPlan[] = [
     originalPrice: "Rp 1.000.000",
     badge: "50% OFF LIMITED",
     cta: "Join Advanced",
-    href: "mailto:hello@kafeinmatcha.academy?subject=Join%20Advanced%20Edge",
+    href: "/register",
     features: [
       "Advanced ADX & momentum",
       "Complex market case studies",

@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Manrope } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
+import { PwaControls } from "./components/pwa-controls";
 
 const manrope = Manrope({
   subsets: ["latin"],
@@ -11,9 +12,14 @@ const manrope = Manrope({
 
 export const metadata: Metadata = {
   title: "Kafeinmatcha Academy",
+  applicationName: "Kafeinmatcha Academy",
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "Kafeinmatcha" },
+  icons: { icon: "/icons/icon-192.png", apple: "/icons/apple-touch-icon.png" },
   description:
     "Structured live online trading classes focused on market reading, risk management, and independent trading plans.",
 };
+
+export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover", themeColor: "#365c2a" };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
@@ -25,6 +31,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
           strategy="afterInteractive"
         />
         {children}
+        <PwaControls />
       </body>
     </html>
   );

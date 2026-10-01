@@ -39,3 +39,7 @@ next-env.d.ts
 .windsurf
 .vercel
 .env*
+!.env.example
+
+# Local database backups (scripts/backup-db.sh) — never commit dumps.
+/backups/

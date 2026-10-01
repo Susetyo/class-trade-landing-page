@@ -77,3 +77,43 @@ iframe {
     stroke-dashoffset: 0;
   }
 }
+
+:root { --cream: #f6f2ea; --black: #102016; --muted: #596251; }
+html { scroll-padding-top: 110px; }
+body { -webkit-tap-highlight-color: transparent; }
+h1, h2, h3 { text-wrap: balance; }
+a, button, summary { touch-action: manipulation; }
+:focus-visible { outline: 3px solid #638449; outline-offset: 5px; }
+.primary-button, .secondary-button { display: inline-flex; align-items: center; justify-content: center; gap: 28px; min-height: 52px; padding: 14px 24px; border-radius: 100px; font-size: 14px; font-weight: 700; transition: transform .2s, background .2s, box-shadow .2s; }
+.primary-button { color: #f8f4ec; background: #365c2a; box-shadow: 0 8px 20px #365c2a18; }
+.secondary-button { border: 1px solid #cdd3c2; color: #365c2a; }
+.primary-button:hover { background: #294820; transform: translateY(-2px); box-shadow: 0 12px 24px #365c2a25; }
+.secondary-button:hover { background: #e8eddf; transform: translateY(-2px); }
+.hero-copy { animation: rise-in .8s both; }
+.hero-visual { animation: rise-in 1s .12s both; }
+.market-card { animation: gentle-float 7s 1s ease-in-out infinite; }
+.reveal-section { transition: opacity .7s ease, transform .7s ease; }
+.reveal-pending { opacity: 0; transform: translateY(24px); }
+.mobile-join { bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
+header { padding-top: max(16px, env(safe-area-inset-top, 0px)); }
+main { padding-left: env(safe-area-inset-left, 0px); padding-right: env(safe-area-inset-right, 0px); }
+@keyframes rise-in { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes gentle-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@media (max-width: 767px) {
+  input, select, textarea { font-size: 16px !important; }
+  main > section[id] { margin-top: 20px; }
+  #method, #inside-the-lab, #pricing { padding-left: 16px; padding-right: 16px; }
+  #method > div { gap: 16px; }
+  #method > div > div, #inside-the-lab > div, #pricing > div { border-radius: 24px; overflow: hidden; }
+  #pricing article { border-radius: 22px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+  .chart-line { stroke-dashoffset: 0; }
+  .reveal-pending { opacity: 1; transform: none; }
+}
+
+.mobile-navigation { max-height: calc(100dvh - 110px - env(safe-area-inset-top, 0px)); overflow-y: auto; overscroll-behavior: contain; }
+.pwa-controls { padding-bottom: calc(32px + env(safe-area-inset-bottom, 0px)); }
+@media (max-width: 767px) { .pwa-controls { padding-bottom: calc(112px + env(safe-area-inset-bottom, 0px)); } }

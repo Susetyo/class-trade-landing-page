@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { pricingPlans, type PricingPlan } from "../data";
 
 const PLAN_CAROUSEL_CLASSNAME =
@@ -89,12 +90,12 @@ function PlanCard({ plan }: { plan: PricingPlan }) {
                 ))}
             </ul>
 
-            <a
+            <Link
                 href={href}
                 className="mt-auto block rounded-full bg-[#F8F4EC] px-6 py-4 text-center text-sm font-extrabold text-[#102016] transition hover:bg-white"
             >
                 {cta}
-            </a>
+            </Link>
         </article>
     );
 }

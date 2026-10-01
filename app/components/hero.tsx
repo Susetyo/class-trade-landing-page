@@ -1,199 +1,52 @@
-const memberStats = [
-    ["Total Members", "1K+"],
-    ["Completed", "200+"],
-    ["Member Score", "82%"],
-];
+import Link from "next/link";
 
 const mentors = ["Ov Kafeinmatcha", "Frida Kucing Hoki", "AHS ADX"];
 
 export function Hero() {
-    return (
-        <section className="relative z-10 pb-10 pt-24 sm:pb-20 sm:pt-32 md:px-8 md:pb-28 md:pt-40">
-            <div className="mx-auto max-w-7xl">
-                <div className="grid min-w-0 items-end gap-10 overflow-hidden bg-[#FBF8F1] p-5 shadow-[0_24px_70px_rgba(28,37,19,0.12)] md:p-10 lg:grid-cols-[1.05fr_0.95fr]">
-                    <div className="min-w-0">
-                        <div className="mb-5 inline-flex max-w-full items-center gap-2 rounded-full border border-[#D8D0BD] bg-white/70 px-3 py-2 text-[11px] font-medium text-[#365C2A] shadow-sm sm:mb-7 sm:gap-3 sm:px-4 sm:text-sm">
-                            <span className="h-2 w-2 rounded-full bg-[#6C8F45]" />
-                            <span>Registration Open • Live Online Classes</span>
-                        </div>
-
-                        <h1 className="max-w-[330px] break-words text-[43px] font-extrabold leading-[0.98] text-[#102016] sm:max-w-5xl sm:text-6xl md:text-[92px] md:leading-[0.9] lg:text-[118px] xl:text-[132px]">
-                            Build Your Trading Edge with Kafeinmatcha
-                        </h1>
-
-                        <div className="mt-6 max-w-4xl md:mt-7">
-                            <p className="text-xs font-extrabold uppercase tracking-[0.18em] text-[#365C2A] md:tracking-[0.24em]">
-                                Mentor Lineup
-                            </p>
-                            <div className="mt-3 grid grid-cols-3 overflow-hidden rounded-[26px] bg-white/88 shadow-[0_18px_45px_rgba(28,37,19,0.12)] sm:grid-cols-3 md:grid md:gap-3 md:overflow-visible md:rounded-none md:bg-transparent md:shadow-none">
-                                {mentors.map((mentor, index) => (
-                                    <div
-                                        key={mentor}
-                                        className="flex min-h-[104px] flex-col items-center justify-center gap-2 border-r border-[#D8D0BD] px-2 py-4 text-center last:border-r-0 md:min-h-0 md:flex-row md:justify-start md:gap-3 md:rounded-lg md:border md:border-[#E4DDCE] md:bg-white/80 md:px-4 md:py-3 md:text-left md:shadow-sm md:backdrop-blur md:transition md:hover:border-[#8D8C59]/45 md:hover:bg-white"
-                                    >
-                                        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#EFF4E8] text-xs font-extrabold text-[#102016] md:h-9 md:w-9">
-                                            {String(index + 1).padStart(2, "0")}
-                                        </span>
-                                        <span className="min-w-0 text-[11px] font-semibold leading-tight text-[#102016] md:text-base">
-                                            {mentor}
-                                        </span>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-
-                        <div className="mt-7 max-w-3xl gap-6 md:mt-8 md:grid-cols-[1fr_0.8fr] md:items-end">
-                            <p className="max-w-[310px] text-[15px] leading-7 text-[#2E352C] sm:text-lg md:max-w-none md:text-xl md:leading-8">
-                                A structured program designed to help you read
-                                the market, master risk management, and build a
-                                solid trading plan. Start trading independently
-                                no more relying on signals.
-                            </p>
-                        </div>
-                        <div className="mt-8 flex flex-col gap-3 md:flex-row md:items-center">
-                            <div className="flex w-full flex-col gap-3 sm:flex-row md:justify-end">
-                                <a
-                                    href="#pricing"
-                                    className="flex items-center justify-center gap-2 rounded-xl bg-[#365C2A] px-6 py-4 text-sm font-extrabold uppercase tracking-[0.04em] text-[#F8F4EC] transition hover:bg-[#2D4D24] sm:px-7 md:rounded-full md:normal-case md:tracking-normal"
-                                >
-                                    Join the Batch
-                                </a>
-                                <a
-                                    href="#inside-the-lab"
-                                    className="flex items-center justify-center gap-2 rounded-xl border border-[#D8D0BD] px-6 py-3.5 text-sm font-bold text-[#365C2A] transition hover:bg-white/60 sm:px-7 sm:py-4 md:rounded-full"
-                                >
-                                    Explore The Lab
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* <HeroCard /> */}
-                </div>
-            </div>
-        </section>
-    );
+  return (
+    <section className="hero-section relative z-10 px-4 pb-12 pt-28 sm:px-6 md:px-8 md:pb-20 md:pt-40">
+      <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[1.1fr_1fr] lg:gap-16">
+        <div className="hero-copy min-w-0">
+          <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-[#CDD7BF] bg-[#EFF4E8] px-3 py-2 text-[11px] font-bold text-[#365C2A] sm:text-xs">
+            <span className="status-dot h-2 w-2 rounded-full bg-[#638449]" /> Registration open · Live online classes
+          </div>
+          <p className="mb-4 text-xs font-bold uppercase tracking-[0.2em] text-[#63705B]">A little clarity. A better trader.</p>
+          <h1 className="text-[clamp(3rem,6.2vw,5.8rem)] font-extrabold leading-[1.02] tracking-[-0.065em]">Build your<br />trading <span className="font-serif font-normal italic text-[#52713D]">edge.</span></h1>
+          <p className="mt-6 max-w-lg text-base leading-8 text-[#596251] sm:text-lg">Read the market. Understand your risk. Build a plan you can call your own — with Kafeinmatcha Academy.</p>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <Link href="/register" className="primary-button">Join Batch <span aria-hidden="true">↗</span></Link>
+            <a href="#inside-the-lab" className="secondary-button">Explore the lab <span aria-hidden="true">↓</span></a>
+          </div>
+          <div className="mt-9 border-t border-[#D8DDCE] pt-5">
+            <p className="mb-3 text-[10px] font-bold uppercase tracking-[0.18em] text-[#63705B]">Learn alongside your mentors</p>
+            <div className="flex flex-wrap gap-x-4 gap-y-3">{mentors.map((mentor, i) => <div key={mentor} className="flex items-center gap-2 text-xs font-semibold"><span className="grid h-7 w-7 place-items-center rounded-full border border-[#C8D1BB] bg-[#E5EBD9] text-[10px] text-[#365C2A]">0{i + 1}</span>{mentor}</div>)}</div>
+          </div>
+        </div>
+        <MarketIllustration />
+      </div>
+    </section>
+  );
 }
 
-function HeroCard() {
-    return (
-        <div className="relative mx-auto w-full max-w-[560px] lg:translate-y-8">
-            <div className="absolute -inset-5 rounded-[44px] bg-gradient-to-br from-[#F1F3F3]/15 via-[#8D8C59]/20 to-[#926C30]/20 blur-2xl" />
-            <div className="relative overflow-hidden rounded-[40px] border border-white/10 bg-[#171411]/85 p-4 shadow-2xl backdrop-blur-2xl">
-                <div className="rounded-[32px] border border-white/10 bg-[#0E0C0A] p-5">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <p className="text-xs uppercase tracking-[0.24em] text-[#827971]">
-                                Dashboard
-                            </p>
-                            <h2 className="mt-2 text-2xl font-semibold tracking-[-0.04em]">
-                                Trading Plan Index
-                            </h2>
-                        </div>
-                        <div className="rounded-full bg-[#F1F3F3] px-4 py-2 text-sm font-extrabold text-[#0E0C0A]">
-                            82%
-                        </div>
-                    </div>
-
-                    <div className="mt-7 rounded-[28px] bg-[#F1F3F3] p-4 text-[#0E0C0A] sm:p-5">
-                        <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                            <p className="text-lg font-extrabold tracking-[-0.04em]">
-                                Members Count
-                            </p>
-                            <p className="text-sm font-medium text-[#6C6662]">
-                                Active community
-                            </p>
-                        </div>
-                        <div className="mt-5 grid grid-cols-3 gap-3">
-                            {memberStats.map(([label, value]) => (
-                                <div
-                                    key={label}
-                                    className="flex min-h-28 flex-col justify-between rounded-2xl bg-[#0E0C0A]/10 p-4"
-                                >
-                                    <p className="text-xs font-medium leading-tight text-[#6C6662]">
-                                        {label}
-                                    </p>
-                                    <p className="text-3xl font-extrabold tracking-[-0.06em]">
-                                        {value}
-                                    </p>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    <ChartCard />
-                </div>
-            </div>
-        </div>
-    );
-}
-
-function ChartCard() {
-    const points = [
-        [104, 142],
-        [198, 102],
-        [300, 67],
-        [410, 42],
-        [520, 30],
-    ];
-
-    return (
-        <div className="mt-4 rounded-[28px] border border-white/10 bg-white/[0.04] p-5">
-            <div className="mb-4 flex items-center justify-between">
-                <p className="font-semibold">Market Structure</p>
-                <span className="rounded-full bg-[#8D8C59]/15 px-3 py-1 text-xs font-semibold text-[#D6D1A2]">
-                    Live Case
-                </span>
-            </div>
-            <svg viewBox="0 0 520 220" className="h-52 w-full overflow-visible">
-                <defs>
-                    <linearGradient id="area" x1="0" x2="0" y1="0" y2="1">
-                        <stop
-                            offset="0%"
-                            stopColor="#F1F3F3"
-                            stopOpacity="0.28"
-                        />
-                        <stop
-                            offset="100%"
-                            stopColor="#8D8C59"
-                            stopOpacity="0"
-                        />
-                    </linearGradient>
-                </defs>
-                {[40, 80, 120, 160, 200].map((y) => (
-                    <line
-                        key={y}
-                        x1="0"
-                        x2="520"
-                        y1={y}
-                        y2={y}
-                        stroke="rgba(241,243,243,0.08)"
-                    />
-                ))}
-                <path
-                    d="M0 178 C48 158 64 136 104 142 C148 148 152 96 198 102 C246 108 250 58 300 67 C352 76 358 36 410 42 C456 48 480 22 520 30 L520 220 L0 220 Z"
-                    fill="url(#area)"
-                />
-                <path
-                    className="chart-line"
-                    d="M0 178 C48 158 64 136 104 142 C148 148 152 96 198 102 C246 108 250 58 300 67 C352 76 358 36 410 42 C456 48 480 22 520 30"
-                    fill="none"
-                    stroke="#F1F3F3"
-                    strokeWidth="5"
-                    strokeLinecap="round"
-                />
-                {points.map(([x, y]) => (
-                    <circle
-                        key={x}
-                        cx={x}
-                        cy={y}
-                        r="6"
-                        fill="#8D8C59"
-                        stroke="#0E0C0A"
-                        strokeWidth="4"
-                    />
-                ))}
-            </svg>
-        </div>
-    );
+function MarketIllustration() {
+  return (
+    <div className="hero-visual relative min-w-0 rounded-[32px] border border-[#D8DDCE] bg-[#E8EDDF] p-5 sm:p-8">
+      <div className="mb-7 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.15em] text-[#526146]"><span>The Kafeinmatcha approach</span><span aria-hidden="true">✳</span></div>
+      <div className="market-card overflow-hidden rounded-2xl bg-[#192D23] p-5 text-[#F8F4EC] shadow-[0_24px_45px_-20px_#192D2380] sm:p-7">
+        <div className="flex items-start justify-between gap-3"><div><p className="text-[10px] uppercase tracking-[0.15em] text-[#B9C8AB]">Your trading lab</p><h2 className="mt-2 text-xl font-semibold tracking-tight sm:text-2xl">Clarity over chaos.</h2></div><span className="rounded-full border border-[#638449] px-2 py-1 text-[9px] text-[#D1E2AF]">ILLUSTRATION</span></div>
+        <svg viewBox="0 0 420 245" role="img" aria-label="Illustrative market chart showing a planned entry zone and market structure" className="my-5 w-full">
+          <defs><linearGradient id="hero-area" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#BFD997" stopOpacity="0.25"/><stop offset="100%" stopColor="#BFD997" stopOpacity="0"/></linearGradient></defs>
+          {[40, 85, 130, 175, 220].map(y => <line key={y} x1="0" x2="420" y1={y} y2={y} stroke="#ffffff12" />)}
+          <rect x="145" y="123" width="240" height="40" rx="4" fill="#BFD99712" stroke="#BFD99750" strokeDasharray="4 5"/>
+          <text x="155" y="149" fill="#C5D8B0" fontSize="10">PLANNED ENTRY ZONE</text>
+          <path d="M0 207 L30 183 L55 194 L90 133 L120 152 L155 97 L185 117 L216 68 L249 90 L280 45 L310 65 L350 25 L385 41 L420 12 V245 H0Z" fill="url(#hero-area)"/>
+          <path className="chart-line" d="M0 207 L30 183 L55 194 L90 133 L120 152 L155 97 L185 117 L216 68 L249 90 L280 45 L310 65 L350 25 L385 41 L420 12" fill="none" stroke="#C5DF9F" strokeWidth="3" strokeLinejoin="round"/>
+          <circle cx="249" cy="90" r="5" fill="#DDEBC9"/>
+        </svg>
+        <div className="grid grid-cols-3 gap-2 border-t border-white/10 pt-4">{["Map the market", "Define your risk", "Follow your plan"].map((label,i) => <div key={label}><p className="text-xs text-[#C5DF9F]">0{i+1}</p><p className="mt-2 text-[10px] leading-4 text-[#D9E0D2] sm:text-xs">{label}</p></div>)}</div>
+      </div>
+      <div className="mt-5 flex items-center gap-3 rounded-xl border border-[#D3DDC6] bg-[#F8FAF3] p-4"><span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-[#DDE8CD] text-[#365C2A]" aria-hidden="true">✓</span><div><p className="text-sm font-bold">Built on process, not predictions.</p><p className="mt-1 text-xs text-[#63705B]">Real practice. Thoughtful decisions.</p></div></div>
+      <p className="mt-5 text-center text-[10px] tracking-wide text-[#63705B]">EDUCATION FIRST. ALWAYS.</p>
+    </div>
+  );
 }

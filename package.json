@@ -13,7 +13,12 @@
     "lint": "eslint",
     "telegram:webhook:set": "node --env-file=.env.local scripts/setup-telegram-webhook.mjs",
     "telegram:check": "node --env-file=.env.local scripts/check-telegram-bot.mjs",
-    "telegram:reconcile": "tsx --env-file=.env.local scripts/reconcile-telegram-access.ts"
+    "telegram:reconcile": "tsx --env-file=.env.local scripts/reconcile-telegram-access.ts",
+    "payments:reconcile": "tsx --env-file=.env.local scripts/reconcile-payments.ts",
+    "db:backup": "bash scripts/backup-db.sh",
+    "db:restore": "bash scripts/restore-db.sh",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",
@@ -38,6 +43,7 @@
   "devDependencies": {
     "@types/pg": "^8.21.0",
     "prisma": "^7.9.1",
-    "tsx": "^4.23.12"
+    "tsx": "^4.23.12",
+    "vitest": "^4.1.11"
   }
 }

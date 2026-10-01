@@ -19,6 +19,8 @@ import {
     revokeChannelInviteLink,
     unbanChannelMember,
 } from "@/lib/telegram-channel";
+import { logger } from "@/lib/logger";
+import { captureException } from "@/lib/error-monitoring";
 
 // A REVOCATION_PENDING row older than this is assumed to belong to a
 // crashed/abandoned attempt and may be reclaimed by a later pass
@@ -78,10 +80,11 @@ export async function reconcileTelegramAccessForOrder(
     try {
         await runReconciliation(orderId);
     } catch (error) {
-        console.error(
-            "Telegram access revocation: unexpected error",
-            error instanceof Error ? error.name : "unknown",
-        );
+        captureException(error, {
+            operation: "telegram_access_revocation.reconcile",
+            orderId,
+            expected: false,
+        });
     }
 }
 
@@ -283,7 +286,8 @@ async function markRevocationFailed(
         },
     });
 
-    console.error("Telegram access revocation attempt failed", {
+    logger.error("Telegram access revocation attempt failed", {
+        event: "telegram_access_revocation.attempt_failed",
         attempt,
         errorCode,
     });
@@ -331,10 +335,10 @@ async function notifyAccessRevoked(telegramUserId: number): Promise<void> {
     try {
         await sendTelegramMessage(telegramUserId, ACCESS_REVOKED_MESSAGE);
     } catch (error) {
-        console.error(
-            "Telegram access revocation: notification failed",
-            error instanceof Error ? error.name : "unknown",
-        );
+        logger.error("Telegram access revocation: notification failed", {
+            event: "telegram_access_revocation.notification_failed",
+            errorName: error instanceof Error ? error.name : "unknown",
+        });
     }
 }
 

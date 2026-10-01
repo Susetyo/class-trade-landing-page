@@ -45,6 +45,28 @@ enum TelegramRemovalOutcome {
   MANUAL_REVIEW_REQUIRED
 }
 
+// Milestone 15 — generic idempotency ledger for POST endpoints that
+// accept an `Idempotency-Key` header (see lib/idempotency.ts).
+// `requestFingerprint` lets a replay of the same key + same payload
+// return the stored response, while the same key with a different
+// payload is rejected. The `@@unique([scope, key])` constraint is the
+// database-level guard against a concurrent duplicate request racing
+// past the application-level check.
+enum IdempotencyRecordStatus {
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+// Milestone 15 — append-only privacy consent ledger (see
+// lib/consent.ts). Each row is one consent event (grant or revoke),
+// never a single mutable boolean — the active state for a subject +
+// consentType is derived by reading the most recent row.
+enum ConsentStatus {
+  GRANTED
+  REVOKED
+}
+
 model Registration {
   id        String   @id @default(cuid())
   name      String
@@ -57,29 +79,43 @@ model Registration {
 }
 
 model Order {
-  id                    String        @id @default(cuid())
-  orderNumber           String        @unique
-  registrationId        String
-  amount                Int
-  status                PaymentStatus @default(PENDING)
-  snapToken             String?
-  snapRedirectUrl       String?
-  midtransTransactionId String?       @unique
-  paymentType           String?
-  paidAt                DateTime?
+  id                     String        @id @default(cuid())
+  orderNumber            String        @unique
+  registrationId         String
+  amount                 Int
+  status                 PaymentStatus @default(PENDING)
+  snapToken              String?
+  snapRedirectUrl        String?
+  midtransTransactionId  String?       @unique
+  paymentType            String?
+  paidAt                 DateTime?
   // Cumulative amount refunded so far, sourced only from Midtrans'
   // server-side transaction status (`refund_amount`) — never from the
   // browser. Used to distinguish a full refund (by value) from a
   // partial one; see lib/telegram-entitlement.ts.
-  refundedAmount        Int           @default(0)
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
+  refundedAmount         Int           @default(0)
+  // Milestone 15 — payment reconciliation's per-order claim (see
+  // lib/payment-reconciliation.ts). Set when a worker claims a
+  // PENDING order to re-check against Midtrans, cleared once that
+  // check finishes (success or failure). A lock older than the
+  // reconciliation job's own stale-lock window is treated as an
+  // abandoned attempt and may be reclaimed.
+  reconciliationLockedAt DateTime?
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
 
   registration Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
 
   webhookEvents      PaymentWebhookEvent[]
   telegramLinkTokens TelegramLinkToken[]
   telegramAccess     TelegramAccess?
+
+  // registrationId: FK lookup/join. status: dashboards/webhook guards.
+  // [status, updatedAt]: reconciliation's PENDING-order scan (see
+  // lib/payment-reconciliation.ts), ordered oldest-updated-first.
+  @@index([registrationId])
+  @@index([status])
+  @@index([status, updatedAt])
 }
 
 model PaymentWebhookEvent {
@@ -189,4 +225,61 @@ model TelegramWebhookEvent {
   processedAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+
+  @@index([createdAt])
+}
+
+// Milestone 15 — see lib/idempotency.ts. `scope` namespaces the key
+// per endpoint (e.g. "payment.create") so the same client-supplied key
+// can't collide across unrelated operations.
+model IdempotencyKey {
+  id                 String                  @id @default(cuid())
+  scope              String
+  key                String
+  requestFingerprint String
+  status             IdempotencyRecordStatus @default(PROCESSING)
+  responseStatus     Int?
+  responseBody       Json?
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+  expiresAt          DateTime
+
+  @@unique([scope, key])
+  @@index([expiresAt])
+}
+
+// Milestone 15 — privacy consent ledger (see lib/consent.ts).
+// `subjectType`/`subjectId` intentionally avoid a hard FK to
+// Registration: consent is a compliance record that must outlive the
+// subject row it describes (e.g. after a data-deletion request).
+model ConsentRecord {
+  id             String        @id @default(cuid())
+  subjectType    String
+  subjectId      String
+  consentType    String
+  consentVersion String
+  status         ConsentStatus
+  source         String
+  createdAt      DateTime      @default(now())
+
+  @@index([subjectType, subjectId, consentType, createdAt])
+}
+
+// Milestone 15 — non-PII audit trail for admin actions and scheduled
+// jobs (payment reconciliation, manual admin reconciliation trigger).
+// `metadata` must only ever hold small structured operational data
+// (counts, status codes, order ids) — never raw payloads or PII, see
+// lib/audit-log.ts.
+model AdminAuditLog {
+  id         String   @id @default(cuid())
+  actor      String
+  action     String
+  targetType String?
+  targetId   String?
+  outcome    String
+  metadata   Json?
+  createdAt  DateTime @default(now())
+
+  @@index([action, createdAt])
+  @@index([targetType, targetId])
 }

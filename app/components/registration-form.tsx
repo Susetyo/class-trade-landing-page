@@ -9,6 +9,7 @@ type RegistrationFormValues = {
     name: string;
     email: string;
     phone: string;
+    privacyConsent: boolean;
 };
 
 type SubmitStatus = {
@@ -18,10 +19,17 @@ type SubmitStatus = {
 
 const GENERIC_ERROR_MESSAGE = "Terjadi kesalahan. Silakan coba lagi.";
 
-async function postJson<T>(url: string, body: unknown): Promise<T> {
+async function postJson<T>(
+    url: string,
+    body: unknown,
+    idempotencyKey?: string,
+): Promise<T> {
     const response = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+            "Content-Type": "application/json",
+            ...(idempotencyKey ? { "Idempotency-Key": idempotencyKey } : {}),
+        },
         body: JSON.stringify(body),
     });
 
@@ -42,7 +50,7 @@ export function RegistrationForm() {
         reset,
         formState: { errors, isSubmitting },
     } = useForm<RegistrationFormValues>({
-        defaultValues: { name: "", email: "", phone: "" },
+        defaultValues: { name: "", email: "", phone: "", privacyConsent: false },
     });
     const [status, setStatus] = useState<SubmitStatus>({
         type: "idle",
@@ -57,15 +65,26 @@ export function RegistrationForm() {
         try {
             const registrationResult = await postJson<{
                 data: { id: string };
-            }>("/api/registrations", values);
+            }>(
+                "/api/registrations",
+                {
+                    name: values.name,
+                    email: values.email,
+                    phone: values.phone,
+                    privacyConsent: values.privacyConsent,
+                },
+                crypto.randomUUID(),
+            );
 
             setStatus({ type: "info", message: "Membuat pembayaran..." });
 
             const paymentResult = await postJson<{
                 data: { orderId: string; snapToken?: string };
-            }>("/api/payments", {
-                registrationId: registrationResult.data.id,
-            });
+            }>(
+                "/api/payments",
+                { registrationId: registrationResult.data.id },
+                crypto.randomUUID(),
+            );
 
             const { orderId, snapToken } = paymentResult.data;
 
@@ -204,6 +223,37 @@ export function RegistrationForm() {
                     {errors.phone ? (
                         <p className="mt-2 text-xs font-medium text-[#B14545]">
                             {errors.phone.message}
+                        </p>
+                    ) : null}
+                </div>
+
+                <div className="mt-6">
+                    <label className="flex items-start gap-3 text-sm leading-6 text-[#3C4636]">
+                        <input
+                            type="checkbox"
+                            className="mt-1 h-4 w-4 rounded border-[#E4DDCE] text-[#365C2A] focus:ring-[#365C2A]"
+                            {...register("privacyConsent", {
+                                required:
+                                    "Kamu perlu menyetujui kebijakan privasi untuk melanjutkan.",
+                            })}
+                        />
+                        <span>
+                            Saya menyetujui{" "}
+                            <Link
+                                href="/privasi"
+                                target="_blank"
+                                className="font-semibold text-[#365C2A] underline"
+                            >
+                                Kebijakan Privasi
+                            </Link>{" "}
+                            dan memberikan izin data nama, email, dan nomor HP
+                            saya diproses untuk keperluan pendaftaran serta
+                            pembayaran kelas ini.
+                        </span>
+                    </label>
+                    {errors.privacyConsent ? (
+                        <p className="mt-2 text-xs font-medium text-[#B14545]">
+                            {errors.privacyConsent.message}
                         </p>
                     ) : null}
                 </div>

@@ -1,5 +1,3 @@
-import { timingSafeEqual } from "node:crypto";
-
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
@@ -26,6 +24,14 @@ import {
     isConfiguredChannel,
     revokeChannelInviteLink,
 } from "@/lib/telegram-channel";
+import { TelegramUpdateSchema } from "@/lib/schemas";
+import { checkRateLimit, RATE_LIMITS, rateLimitResponseInit } from "@/lib/rate-limit";
+import { getClientIp, getRequestId } from "@/lib/request-context";
+import { getTelegramWebhookSecret } from "@/lib/env";
+import { verifyTelegramSecretToken } from "@/lib/telegram-webhook-auth";
+import { shouldSkipDuplicateUpdate, recordUpdateEvent } from "@/lib/telegram-webhook-ledger";
+import { logger } from "@/lib/logger";
+import { captureException } from "@/lib/error-monitoring";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -85,27 +91,16 @@ type LinkOutcome =
 type JoinRequestOutcome = "ok" | "retry";
 
 function isValidSecretToken(receivedSecret: string | null): boolean {
-    const expectedSecret = process.env.TELEGRAM_WEBHOOK_SECRET;
+    const expectedSecret = getTelegramWebhookSecret();
 
     if (!expectedSecret) {
-        console.error(
-            "TELEGRAM_WEBHOOK_SECRET belum dikonfigurasi",
-        );
+        logger.error("TELEGRAM_WEBHOOK_SECRET belum dikonfigurasi", {
+            event: "telegram.webhook_secret_missing",
+        });
         return false;
     }
 
-    if (!receivedSecret) {
-        return false;
-    }
-
-    const receivedBuffer = Buffer.from(receivedSecret);
-    const expectedBuffer = Buffer.from(expectedSecret);
-
-    if (receivedBuffer.length !== expectedBuffer.length) {
-        return false;
-    }
-
-    return timingSafeEqual(receivedBuffer, expectedBuffer);
+    return verifyTelegramSecretToken(receivedSecret, expectedSecret);
 }
 
 function isForwardedMessage(message: TelegramMessage): boolean {
@@ -119,10 +114,10 @@ async function sendSafeMessage(chatId: number, text: string) {
     try {
         await sendTelegramMessage(chatId, text);
     } catch (error) {
-        console.error(
-            "Gagal mengirim balasan Telegram:",
-            error instanceof Error ? error.message : "unknown error",
-        );
+        logger.error("Gagal mengirim balasan Telegram", {
+            event: "telegram.send_message_failed",
+            errorName: error instanceof Error ? error.name : "unknown",
+        });
     }
 }
 
@@ -227,10 +222,10 @@ async function consumeLinkToken(
         // race on TelegramAccount that the pre-checks above didn't
         // catch. Fail safe with a generic "invalid" outcome — never
         // leak internals to the Telegram reply.
-        console.error(
-            "Telegram linking transaction error:",
-            error instanceof Error ? error.message : "unknown error",
-        );
+        logger.error("Telegram linking transaction error", {
+            event: "telegram.link_transaction_error",
+            errorName: error instanceof Error ? error.name : "unknown",
+        });
         return { kind: "invalid" };
     }
 }
@@ -316,7 +311,10 @@ async function handleMessage(message: TelegramMessage) {
 }
 
 function handleMyChatMember(update: TelegramChatMemberUpdated) {
-    console.log("Bot membership status updated", {
+    // chatId here is the bot's own channel/group membership target,
+    // not a user identifier — safe to log, see docs/telegram-setup.md.
+    logger.info("Bot membership status updated", {
+        event: "telegram.my_chat_member",
         chatType: update.chat.type,
         chatId: update.chat.id,
         status: update.new_chat_member.status,
@@ -329,10 +327,10 @@ async function declineSafely(telegramUserId: number) {
     try {
         await declineChannelJoinRequest(telegramUserId);
     } catch (error) {
-        console.error(
-            "Channel join request decline failed:",
-            error instanceof Error ? error.name : "unknown error",
-        );
+        logger.error("Channel join request decline failed", {
+            event: "telegram.join_request_decline_failed",
+            errorName: error instanceof Error ? error.name : "unknown",
+        });
     }
 
     await sendSafeMessage(telegramUserId, JOIN_REQUEST_DECLINED_MESSAGE);
@@ -352,10 +350,10 @@ async function grantAccess(accessId: string, telegramUserId: number) {
         try {
             await revokeChannelInviteLink(current.inviteLink);
         } catch (error) {
-            console.error(
-                "Channel join request: post-approve revoke failed:",
-                error instanceof Error ? error.name : "unknown error",
-            );
+            logger.error("Channel join request: post-approve revoke failed", {
+                event: "telegram.post_approve_revoke_failed",
+                errorName: error instanceof Error ? error.name : "unknown",
+            });
         }
     }
 
@@ -395,10 +393,10 @@ async function reconcileStuckRequest(
             return "ok";
         }
     } catch (error) {
-        console.error(
-            "Channel join request: reconciliation getChatMember failed:",
-            error instanceof Error ? error.name : "unknown error",
-        );
+        logger.error("Channel join request: reconciliation getChatMember failed", {
+            event: "telegram.reconcile_get_chat_member_failed",
+            errorName: error instanceof Error ? error.name : "unknown",
+        });
     }
 
     // Not (yet) a member and nothing more we can safely do here — this
@@ -420,10 +418,10 @@ async function handleApproveFailure(
     telegramUserId: number,
     error: unknown,
 ): Promise<JoinRequestOutcome> {
-    console.error(
-        "Channel join request: approveChatJoinRequest failed:",
-        error instanceof Error ? error.name : "unknown error",
-    );
+    logger.error("Channel join request: approveChatJoinRequest failed", {
+        event: "telegram.approve_join_request_failed",
+        errorName: error instanceof Error ? error.name : "unknown",
+    });
 
     if (
         error instanceof TelegramNetworkError ||
@@ -460,10 +458,10 @@ async function approveAndFinalize(
     try {
         await grantAccess(accessId, telegramUserId);
     } catch (dbError) {
-        console.error(
-            "Channel join request: post-approve DB update failed:",
-            dbError instanceof Error ? dbError.name : "unknown error",
-        );
+        logger.error("Channel join request: post-approve DB update failed", {
+            event: "telegram.post_approve_db_update_failed",
+            errorName: dbError instanceof Error ? dbError.name : "unknown",
+        });
         // Telegram-side approval already succeeded; leave status
         // REQUESTED so a retried delivery reconciles via getChatMember
         // instead of re-approving.
@@ -566,40 +564,6 @@ async function processJoinRequest(
     return approveAndFinalize(access.id, telegramUserId);
 }
 
-async function shouldSkipDuplicateJoinRequest(
-    updateId: string,
-): Promise<boolean> {
-    const existing = await prisma.telegramWebhookEvent.findUnique({
-        where: { updateId },
-        select: { status: true },
-    });
-
-    return existing?.status === "done";
-}
-
-async function recordJoinRequestEvent(updateId: string, status: string) {
-    await prisma.telegramWebhookEvent
-        .upsert({
-            where: { updateId },
-            create: {
-                updateId,
-                eventType: "chat_join_request",
-                status,
-                processedAt: status === "done" ? new Date() : null,
-            },
-            update: {
-                status,
-                processedAt: status === "done" ? new Date() : null,
-            },
-        })
-        .catch((error) => {
-            console.error(
-                "Failed to record Telegram webhook event:",
-                error instanceof Error ? error.name : "unknown error",
-            );
-        });
-}
-
 async function handleChatJoinRequest(
     request: TelegramChatJoinRequest,
     updateId: string,
@@ -609,7 +573,7 @@ async function handleChatJoinRequest(
     // not marked "done" (including a previous "retry") is safe to
     // reprocess — every step above is itself idempotent via the
     // conditional updateMany claim and the reconciliation fallbacks.
-    if (await shouldSkipDuplicateJoinRequest(updateId)) {
+    if (await shouldSkipDuplicateUpdate(updateId)) {
         return "ok";
     }
 
@@ -618,23 +582,41 @@ async function handleChatJoinRequest(
     try {
         outcome = await processJoinRequest(request);
     } catch (error) {
-        console.error(
-            "Channel join request: unexpected processing error:",
-            error instanceof Error ? error.name : "unknown error",
-        );
-        await recordJoinRequestEvent(updateId, "failed");
+        logger.error("Channel join request: unexpected processing error", {
+            event: "telegram.join_request_processing_error",
+            errorName: error instanceof Error ? error.name : "unknown",
+        });
+        await recordUpdateEvent(updateId, "chat_join_request", "failed");
         return "retry";
     }
 
     // Only ever marked "done" once processing has fully completed — a
     // "retry" outcome is recorded as "failed" so a redelivery is not
     // treated as a duplicate.
-    await recordJoinRequestEvent(updateId, outcome === "ok" ? "done" : "failed");
+    await recordUpdateEvent(
+        updateId,
+        "chat_join_request",
+        outcome === "ok" ? "done" : "failed",
+    );
 
     return outcome;
 }
 
 export async function POST(request: Request) {
+    const requestId = getRequestId(request);
+
+    const rateLimit = await checkRateLimit({
+        key: `telegram.webhook:${getClientIp(request)}`,
+        ...RATE_LIMITS.TELEGRAM_WEBHOOK,
+    });
+
+    if (!rateLimit.allowed) {
+        return NextResponse.json(
+            { message: "Terlalu banyak permintaan" },
+            rateLimitResponseInit(rateLimit),
+        );
+    }
+
     const receivedSecret = request.headers.get(SECRET_TOKEN_HEADER);
 
     if (!isValidSecretToken(receivedSecret)) {
@@ -648,18 +630,14 @@ export async function POST(request: Request) {
 
     try {
         const rawBody = await request.text();
-        const parsed: unknown = JSON.parse(rawBody);
+        const parsedJson: unknown = JSON.parse(rawBody);
+        const validation = TelegramUpdateSchema.safeParse(parsedJson);
 
-        if (
-            !parsed ||
-            typeof parsed !== "object" ||
-            typeof (parsed as { update_id?: unknown }).update_id !==
-                "number"
-        ) {
+        if (!validation.success) {
             throw new Error("invalid update payload");
         }
 
-        update = parsed as TelegramUpdate;
+        update = parsedJson as TelegramUpdate;
     } catch {
         return NextResponse.json(
             { message: "Payload webhook tidak valid" },
@@ -667,11 +645,10 @@ export async function POST(request: Request) {
         );
     }
 
+    const updateId = String(update.update_id);
+
     if (update.chat_join_request) {
-        const outcome = await handleChatJoinRequest(
-            update.chat_join_request,
-            String(update.update_id),
-        );
+        const outcome = await handleChatJoinRequest(update.chat_join_request, updateId);
 
         if (outcome === "retry") {
             return NextResponse.json(
@@ -683,17 +660,44 @@ export async function POST(request: Request) {
         return NextResponse.json({ ok: true });
     }
 
+    const eventType = update.message
+        ? "message"
+        : update.my_chat_member
+          ? "my_chat_member"
+          : "unknown";
+
+    if (eventType !== "unknown" && (await shouldSkipDuplicateUpdate(updateId))) {
+        return NextResponse.json({ ok: true });
+    }
+
     try {
         if (update.message) {
             await handleMessage(update.message);
         } else if (update.my_chat_member) {
             handleMyChatMember(update.my_chat_member);
         }
+
+        if (eventType !== "unknown") {
+            await recordUpdateEvent(updateId, eventType, "done");
+        }
     } catch (error) {
         // Any unexpected handler failure still returns 200 so Telegram
         // does not endlessly retry this update — unlike
         // chat_join_request, retrying these has no benefit.
-        console.error("Telegram webhook handler error:", error);
+        logger.error("Telegram webhook handler error", {
+            event: "telegram.webhook_handler_error",
+            requestId,
+            errorName: error instanceof Error ? error.name : "unknown",
+        });
+        captureException(error, {
+            operation: "webhooks.telegram",
+            requestId,
+            expected: false,
+        });
+
+        if (eventType !== "unknown") {
+            await recordUpdateEvent(updateId, eventType, "failed");
+        }
     }
 
     return NextResponse.json({ ok: true });

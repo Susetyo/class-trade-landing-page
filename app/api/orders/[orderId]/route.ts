@@ -3,6 +3,9 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { isValidOrderId } from "@/lib/order-access";
 import type { PaymentStatus } from "@/app/generated/prisma/enums";
+import { checkRateLimit, RATE_LIMITS, rateLimitResponseInit } from "@/lib/rate-limit";
+import { getClientIp } from "@/lib/request-context";
+import { captureException } from "@/lib/error-monitoring";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -30,9 +33,21 @@ const NO_STORE_HEADERS = {
 };
 
 export async function GET(
-    _request: Request,
+    request: Request,
     { params }: { params: Promise<{ orderId: string }> },
 ) {
+    const rateLimit = await checkRateLimit({
+        key: `orders.get:${getClientIp(request)}`,
+        ...RATE_LIMITS.TELEGRAM_ACTION,
+    });
+
+    if (!rateLimit.allowed) {
+        return NextResponse.json<ErrorResponse>(
+            { message: "Terlalu banyak permintaan." },
+            rateLimitResponseInit(rateLimit, NO_STORE_HEADERS),
+        );
+    }
+
     try {
         const { orderId } = await params;
 
@@ -78,7 +93,10 @@ export async function GET(
             { status: 200, headers: NO_STORE_HEADERS },
         );
     } catch (error) {
-        console.error("Get order status error:", error);
+        captureException(error, {
+            operation: "orders.get_status",
+            expected: false,
+        });
 
         return NextResponse.json<ErrorResponse>(
             { message: "Terjadi kesalahan pada server" },

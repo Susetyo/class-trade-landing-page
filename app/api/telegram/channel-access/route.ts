@@ -14,6 +14,10 @@ import {
     revokeChannelInviteLink,
 } from "@/lib/telegram-channel";
 import type { TelegramAccessStatus } from "@/app/generated/prisma/enums";
+import { checkRateLimit, RATE_LIMITS, rateLimitResponseInit } from "@/lib/rate-limit";
+import { getClientIp } from "@/lib/request-context";
+import { logger } from "@/lib/logger";
+import { captureException } from "@/lib/error-monitoring";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -74,10 +78,10 @@ async function reconcileGranted(
         try {
             await revokeChannelInviteLink(currentInviteLink);
         } catch (error) {
-            console.error(
-                "Channel access: revoke-on-reconcile failed",
-                error instanceof Error ? error.name : "unknown",
-            );
+            logger.error("Channel access: revoke-on-reconcile failed", {
+                event: "telegram.channel_access_revoke_on_reconcile_failed",
+                errorName: error instanceof Error ? error.name : "unknown",
+            });
         }
     }
 
@@ -95,6 +99,18 @@ async function reconcileGranted(
 }
 
 export async function POST(request: Request) {
+    const rateLimit = await checkRateLimit({
+        key: `telegram.channel_access:${getClientIp(request)}`,
+        ...RATE_LIMITS.TELEGRAM_ACTION,
+    });
+
+    if (!rateLimit.allowed) {
+        return NextResponse.json<ErrorResponse>(
+            { success: false, message: "Terlalu banyak permintaan. Silakan coba lagi sebentar." },
+            rateLimitResponseInit(rateLimit, NO_STORE_HEADERS),
+        );
+    }
+
     try {
         const json = await request.json().catch(() => null);
         const parsed = RequestSchema.safeParse(json);
@@ -152,9 +168,9 @@ export async function POST(request: Request) {
             // Should not happen under normal flow (an Order's Registration
             // and its linked Telegram account are both fixed once set),
             // but never trust stale linkage — fail safe and generic.
-            console.error(
-                "Channel access: telegramAccountId mismatch for Order",
-            );
+            logger.error("Channel access: telegramAccountId mismatch for Order", {
+                event: "telegram.channel_access_account_mismatch",
+            });
             return errorResponse(
                 "Terjadi gangguan sementara, silakan coba lagi.",
                 500,
@@ -236,10 +252,10 @@ export async function POST(request: Request) {
         } catch (error) {
             // Reconciliation is best-effort — if Telegram can't tell us
             // membership status, fall through to the normal invite flow.
-            console.error(
-                "Channel access: reconciliation check failed",
-                error instanceof Error ? error.name : "unknown",
-            );
+            logger.error("Channel access: reconciliation check failed", {
+                event: "telegram.channel_access_reconciliation_check_failed",
+                errorName: error instanceof Error ? error.name : "unknown",
+            });
         }
 
         // An active, unexpired invite already exists — hand the same
@@ -285,10 +301,10 @@ export async function POST(request: Request) {
             inviteLink =
                 await createChannelJoinRequestInviteLink(inviteLinkName);
         } catch (error) {
-            console.error(
-                "Channel access: createChatInviteLink failed",
-                error instanceof Error ? error.name : "unknown",
-            );
+            logger.error("Channel access: createChatInviteLink failed", {
+                event: "telegram.channel_access_create_invite_failed",
+                errorName: error instanceof Error ? error.name : "unknown",
+            });
 
             await prisma.telegramAccess
                 .update({
@@ -327,20 +343,18 @@ export async function POST(request: Request) {
                 },
             });
         } catch (dbError) {
-            console.error(
-                "Channel access: failed to persist invite link",
-                dbError instanceof Error ? dbError.name : "unknown",
-            );
+            logger.error("Channel access: failed to persist invite link", {
+                event: "telegram.channel_access_persist_invite_failed",
+                errorName: dbError instanceof Error ? dbError.name : "unknown",
+            });
 
             try {
                 await revokeChannelInviteLink(inviteLink.invite_link);
             } catch (revokeError) {
-                console.error(
-                    "Channel access: compensation revoke failed",
-                    revokeError instanceof Error
-                        ? revokeError.name
-                        : "unknown",
-                );
+                logger.error("Channel access: compensation revoke failed", {
+                    event: "telegram.channel_access_compensation_revoke_failed",
+                    errorName: revokeError instanceof Error ? revokeError.name : "unknown",
+                });
             }
 
             return errorResponse(
@@ -361,10 +375,10 @@ export async function POST(request: Request) {
             { status: 201, headers: NO_STORE_HEADERS },
         );
     } catch (error) {
-        console.error(
-            "Channel access: unexpected error",
-            error instanceof Error ? error.name : "unknown",
-        );
+        captureException(error, {
+            operation: "telegram.channel_access_post",
+            expected: false,
+        });
 
         return errorResponse(
             "Terjadi gangguan sementara, silakan coba lagi.",
@@ -384,6 +398,18 @@ type ChannelAccessStatusResponse = {
 };
 
 export async function GET(request: Request) {
+    const rateLimit = await checkRateLimit({
+        key: `telegram.channel_access_status:${getClientIp(request)}`,
+        ...RATE_LIMITS.TELEGRAM_ACTION,
+    });
+
+    if (!rateLimit.allowed) {
+        return NextResponse.json<ErrorResponse>(
+            { success: false, message: "Terlalu banyak permintaan." },
+            rateLimitResponseInit(rateLimit, NO_STORE_HEADERS),
+        );
+    }
+
     try {
         const url = new URL(request.url);
         const orderId = url.searchParams.get("orderId") ?? "";
@@ -437,10 +463,10 @@ export async function GET(request: Request) {
             { status: 200, headers: NO_STORE_HEADERS },
         );
     } catch (error) {
-        console.error(
-            "Channel access status: unexpected error",
-            error instanceof Error ? error.name : "unknown",
-        );
+        captureException(error, {
+            operation: "telegram.channel_access_get",
+            expected: false,
+        });
 
         return errorResponse(
             "Terjadi gangguan sementara, silakan coba lagi.",

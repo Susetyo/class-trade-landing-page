@@ -8,10 +8,10 @@ export function FAQ() {
         <SectionHeading eyebrow="FAQ" title="Before you join." align="center" />
         <div className="mt-8 space-y-4 md:mt-12">
           {faqs.map((faq) => (
-            <div key={faq.question} className="rounded-[26px] border border-[#E4DDCE] bg-white p-5 text-[#102016] shadow-[0_14px_34px_rgba(28,37,19,0.08)] md:rounded-[32px] md:p-7">
-              <h3 className="text-xl font-semibold md:text-2xl">{faq.question}</h3>
+            <details key={faq.question} className="rounded-[26px] border border-[#E4DDCE] bg-white p-5 text-[#102016] shadow-[0_14px_34px_rgba(28,37,19,0.08)] md:rounded-[32px] md:p-7">
+              <summary className="cursor-pointer text-base font-semibold sm:text-xl">{faq.question}</summary>
               <p className="mt-4 text-sm leading-7 text-[#3C4636] md:text-base md:leading-8">{faq.answer}</p>
-            </div>
+            </details>
           ))}
         </div>
       </div>

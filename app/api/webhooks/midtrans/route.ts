@@ -1,320 +1,155 @@
-import {
-    createHash,
-    timingSafeEqual,
-} from "node:crypto";
+import { createHash } from "node:crypto";
 
 import { NextResponse } from "next/server";
 
 import { prisma } from "@/lib/prisma";
-import {
-    getMidtransTransactionStatus,
-    type MidtransTransactionStatus,
-} from "@/lib/midtrans";
+import { getMidtransTransactionStatus } from "@/lib/midtrans";
+import { getMidtransServerKey } from "@/lib/env";
+import { verifyMidtransSignature } from "@/lib/midtrans-signature";
 import { reconcileTelegramAccessForOrder } from "@/lib/telegram-access-revocation";
-import type { PaymentStatus } from "@/app/generated/prisma/enums";
+import {
+    ENTITLEMENT_SENSITIVE_STATUSES,
+    resolvePaymentStatus,
+    shouldPersistStatusChange,
+} from "@/lib/payment-status";
+import { MidtransNotificationSchema } from "@/lib/schemas";
+import { checkRateLimit, RATE_LIMITS, rateLimitResponseInit } from "@/lib/rate-limit";
+import { getClientIp, getRequestId } from "@/lib/request-context";
+import { logger } from "@/lib/logger";
+import { captureException } from "@/lib/error-monitoring";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// Milestone 14: once an Order has reached PAID (or a refund/chargeback
-// state derived from it), a stale or out-of-order notification
-// reporting one of these non-payment statuses must never downgrade
-// it — see docs/telegram-setup.md.
-const NEVER_DOWNGRADE_FROM: PaymentStatus[] = [
-    "PAID",
-    "REFUNDED",
-    "PARTIALLY_REFUNDED",
-    "CHARGEBACK",
-    "PARTIAL_CHARGEBACK",
-];
-const NON_PAYMENT_STATUSES: PaymentStatus[] = [
-    "PENDING",
-    "EXPIRED",
-    "CANCELLED",
-    "FAILED",
-];
+type MidtransNotification = {
+    order_id: string;
+    transaction_id: string;
+    transaction_status: string;
+    status_code: string;
+    gross_amount: string;
+    signature_key: string;
+    fraud_status?: string;
+    payment_type?: string;
+    refund_amount?: string;
+};
 
-// Statuses that can affect Telegram entitlement — only these are
-// worth an extra query + potential Telegram calls after commit.
-const ENTITLEMENT_SENSITIVE_STATUSES: PaymentStatus[] = [
-    "REFUNDED",
-    "PARTIALLY_REFUNDED",
-    "CHARGEBACK",
-    "PARTIAL_CHARGEBACK",
-];
-
-function shouldPersistStatusChange(
-    current: PaymentStatus,
-    next: PaymentStatus,
-): boolean {
-    if (current === next) return true;
-
-    // Fully terminal — once a transaction has been reported fully
-    // refunded or fully charged back, no later notification may move
-    // it anywhere else.
-    if (current === "REFUNDED" || current === "CHARGEBACK") return false;
-
-    if (
-        NEVER_DOWNGRADE_FROM.includes(current) &&
-        NON_PAYMENT_STATUSES.includes(next)
-    ) {
-        return false;
-    }
-
-    return true;
-}
-
-type MidtransNotification =
-    MidtransTransactionStatus & {
-        signature_key: string;
-    };
-
-function isValidSignature(
-    notification: MidtransNotification,
-) {
-    const serverKey = process.env.MIDTRANS_SERVER_KEY;
-
-    if (!serverKey) {
-        throw new Error(
-            "MIDTRANS_SERVER_KEY belum dikonfigurasi",
-        );
-    }
-
-    const expectedSignature = createHash("sha512")
-        .update(
-            notification.order_id +
-            notification.status_code +
-            notification.gross_amount +
-            serverKey,
-        )
-        .digest("hex");
-
-    const receivedSignature =
-        notification.signature_key.toLowerCase();
-
-    if (
-        !/^[a-f0-9]{128}$/.test(receivedSignature)
-    ) {
-        return false;
-    }
-
-    return timingSafeEqual(
-        Buffer.from(expectedSignature, "hex"),
-        Buffer.from(receivedSignature, "hex"),
-    );
-}
-
-function resolvePaymentStatus(
-    transaction: MidtransTransactionStatus,
-) {
-    const transactionStatus =
-        transaction.transaction_status.toLowerCase();
-
-    const fraudStatus =
-        transaction.fraud_status?.toLowerCase();
-
-    if (
-        transactionStatus === "settlement" &&
-        transaction.status_code === "200"
-    ) {
-        return "PAID" as const;
-    }
-
-    if (
-        transactionStatus === "capture" &&
-        transaction.status_code === "200" &&
-        fraudStatus === "accept"
-    ) {
-        return "PAID" as const;
-    }
-
-    if (
-        transactionStatus === "pending" ||
-        transactionStatus === "authorize"
-    ) {
-        return "PENDING" as const;
-    }
-
-    if (transactionStatus === "expire") {
-        return "EXPIRED" as const;
-    }
-
-    if (transactionStatus === "cancel") {
-        return "CANCELLED" as const;
-    }
-
-    if (
-        transactionStatus === "deny" ||
-        transactionStatus === "failure"
-    ) {
-        return "FAILED" as const;
-    }
-
-    if (transactionStatus === "refund") {
-        return "REFUNDED" as const;
-    }
-
-    if (
-        transactionStatus === "partial_refund"
-    ) {
-        return "PARTIALLY_REFUNDED" as const;
-    }
-
-    if (transactionStatus === "chargeback") {
-        return "CHARGEBACK" as const;
-    }
-
-    if (transactionStatus === "partial_chargeback") {
-        // Kept distinct from full CHARGEBACK — Milestone 14 policy
-        // requires manual review rather than an automatic revocation.
-        // See lib/telegram-entitlement.ts.
-        return "PARTIAL_CHARGEBACK" as const;
-    }
-
-    return null;
+function isValidSignature(notification: MidtransNotification): boolean {
+    return verifyMidtransSignature(notification, getMidtransServerKey());
 }
 
 export async function POST(request: Request) {
+    const requestId = getRequestId(request);
+
+    const rateLimit = await checkRateLimit({
+        key: `midtrans.webhook:${getClientIp(request)}`,
+        ...RATE_LIMITS.MIDTRANS_WEBHOOK,
+    });
+
+    if (!rateLimit.allowed) {
+        return NextResponse.json(
+            { message: "Terlalu banyak permintaan" },
+            rateLimitResponseInit(rateLimit),
+        );
+    }
+
     try {
         const rawBody = await request.text();
 
-        const notification = JSON.parse(
-            rawBody,
-        ) as MidtransNotification;
-
-        if (
-            !notification.order_id ||
-            !notification.transaction_id ||
-            !notification.transaction_status ||
-            !notification.status_code ||
-            !notification.gross_amount ||
-            !notification.signature_key
-        ) {
+        let parsedJson: unknown;
+        try {
+            parsedJson = JSON.parse(rawBody);
+        } catch {
             return NextResponse.json(
-                {
-                    message:
-                        "Payload webhook tidak lengkap",
-                },
-                {
-                    status: 400,
-                },
+                { message: "Payload webhook tidak valid" },
+                { status: 400 },
             );
         }
 
-        // 1. Verifikasi bahwa webhook berasal
-        // dari Midtrans
+        const validation = MidtransNotificationSchema.safeParse(parsedJson);
+
+        if (!validation.success) {
+            return NextResponse.json(
+                { message: "Payload webhook tidak lengkap" },
+                { status: 400 },
+            );
+        }
+
+        const notification = validation.data as MidtransNotification;
+
+        // 1. Verify the notification actually came from Midtrans
+        // *before* touching anything derived from it.
         if (!isValidSignature(notification)) {
-            return NextResponse.json(
-                {
-                    message: "Signature tidak valid",
-                },
-                {
-                    status: 401,
-                },
-            );
+            logger.warn("Midtrans webhook: invalid signature", {
+                event: "midtrans.webhook_invalid_signature",
+                requestId,
+            });
+
+            return NextResponse.json({ message: "Signature tidak valid" }, { status: 401 });
         }
 
-        // 2. Cari order internal
+        // 2. Look up the internal order.
         const order = await prisma.order.findUnique({
-            where: {
-                orderNumber: notification.order_id,
-            },
+            where: { orderNumber: notification.order_id },
         });
 
         if (!order) {
-            return NextResponse.json(
-                {
-                    message: "Order tidak ditemukan",
-                },
-                {
-                    status: 404,
-                },
-            );
+            return NextResponse.json({ message: "Order tidak ditemukan" }, { status: 404 });
         }
 
-        // 3. Ambil status terbaru langsung
-        // dari API Midtrans
-        const currentTransaction =
-            await getMidtransTransactionStatus(
-                order.orderNumber,
-            );
+        // 3. Fetch the current status directly from Midtrans — never
+        // trust the webhook payload's status fields for the actual
+        // state transition, only for routing/signature.
+        const currentTransaction = await getMidtransTransactionStatus(order.orderNumber);
 
-        if (
-            currentTransaction.order_id !==
-            order.orderNumber
-        ) {
-            return NextResponse.json(
-                {
-                    message: "Order ID tidak sesuai",
-                },
-                {
-                    status: 400,
-                },
-            );
+        if (currentTransaction.order_id !== order.orderNumber) {
+            return NextResponse.json({ message: "Order ID tidak sesuai" }, { status: 400 });
         }
 
-        // 4. Pastikan nominalnya sama
-        const paidAmount = Number(
-            currentTransaction.gross_amount,
-        );
+        // 4. Amount must match.
+        const paidAmount = Number(currentTransaction.gross_amount);
 
         if (paidAmount !== order.amount) {
-            console.error("Amount mismatch", {
-                expected: order.amount,
-                received: paidAmount,
+            logger.error("Midtrans webhook: amount mismatch", {
+                event: "midtrans.webhook_amount_mismatch",
+                requestId,
+                orderId: order.id,
             });
 
             return NextResponse.json(
-                {
-                    message:
-                        "Nominal pembayaran tidak sesuai",
-                },
-                {
-                    status: 400,
-                },
+                { message: "Nominal pembayaran tidak sesuai" },
+                { status: 400 },
             );
         }
 
-        // 4b. Pastikan transaction ID cocok dengan transaksi yang
-        // sudah tercatat untuk Order ini (jika sudah pernah tercatat)
-        // — mencegah notification untuk transaksi lain diterapkan ke
-        // Order yang salah.
+        // 4b. If a transaction ID is already recorded for this Order,
+        // a new notification must reference the same one.
         if (
             order.midtransTransactionId &&
-            order.midtransTransactionId !==
-            currentTransaction.transaction_id
+            order.midtransTransactionId !== currentTransaction.transaction_id
         ) {
-            console.error(
-                "Transaction ID mismatch for order",
-            );
+            logger.error("Midtrans webhook: transaction id mismatch", {
+                event: "midtrans.webhook_transaction_id_mismatch",
+                requestId,
+                orderId: order.id,
+            });
 
-            return NextResponse.json(
-                {
-                    message: "Transaksi tidak sesuai",
-                },
-                {
-                    status: 400,
-                },
-            );
+            return NextResponse.json({ message: "Transaksi tidak sesuai" }, { status: 400 });
         }
 
-        // 5. Petakan status Midtrans
-        const paymentStatus =
-            resolvePaymentStatus(currentTransaction);
+        // 5. Map Midtrans status to the internal PaymentStatus.
+        const paymentStatus = resolvePaymentStatus(currentTransaction);
 
         if (!paymentStatus) {
-            console.warn(
-                "Unsupported Midtrans status:",
-                currentTransaction.transaction_status,
-            );
-
-            return NextResponse.json({
-                message: "Status diabaikan",
+            logger.warn("Midtrans webhook: unsupported status", {
+                event: "midtrans.webhook_unsupported_status",
+                requestId,
+                orderId: order.id,
             });
+
+            return NextResponse.json({ message: "Status diabaikan" });
         }
 
-        // 6. Buat ID webhook agar pemrosesan
-        // bersifat idempotent
+        // 6. Deduplicate this exact notification.
         const eventKey = createHash("sha256")
             .update(
                 [
@@ -326,101 +161,78 @@ export async function POST(request: Request) {
             )
             .digest("hex");
 
-        const payload = JSON.parse(rawBody);
-
-        // Cumulative refund amount, sourced only from Midtrans' own
-        // status response — never from the browser. Used centrally by
-        // lib/telegram-entitlement.ts to tell a full refund (by
-        // value) apart from a partial one.
         const refundedAmount = currentTransaction.refund_amount
             ? Number(currentTransaction.refund_amount)
             : order.refundedAmount;
 
         // A stale/out-of-order notification must never downgrade an
         // Order that has already reached PAID (or a refund/chargeback
-        // state derived from it) back to a non-payment status — see
-        // shouldPersistStatusChange above.
-        const persistStatusChange = shouldPersistStatusChange(
-            order.status,
-            paymentStatus,
-        );
+        // state derived from it) — see shouldPersistStatusChange.
+        const persistStatusChange = shouldPersistStatusChange(order.status, paymentStatus);
 
-        const finalOrderStatus = persistStatusChange
-            ? paymentStatus
-            : order.status;
+        const finalOrderStatus = persistStatusChange ? paymentStatus : order.status;
 
-        // 7. Simpan webhook dan update order
-        // dalam satu database transaction
+        // 7. Persist the webhook event and the order update atomically.
         await prisma.$transaction([
             prisma.paymentWebhookEvent.upsert({
-                where: {
-                    eventKey,
-                },
+                where: { eventKey },
                 create: {
                     eventKey,
                     orderId: order.id,
-                    transactionStatus:
-                        currentTransaction.transaction_status,
-                    payload,
+                    transactionStatus: currentTransaction.transaction_status,
+                    payload: parsedJson as object,
                 },
                 update: {
-                    transactionStatus:
-                        currentTransaction.transaction_status,
-                    payload,
+                    transactionStatus: currentTransaction.transaction_status,
+                    payload: parsedJson as object,
                     processedAt: new Date(),
                 },
             }),
 
             prisma.order.update({
-                where: {
-                    id: order.id,
-                },
+                where: { id: order.id },
                 data: persistStatusChange
                     ? {
-                        status: paymentStatus,
-                        midtransTransactionId:
-                            currentTransaction.transaction_id,
-                        paymentType:
-                            currentTransaction.payment_type,
-                        paidAt:
-                            paymentStatus === "PAID"
-                                ? order.paidAt ?? new Date()
-                                : order.paidAt,
-                        refundedAmount,
-                    }
+                          status: paymentStatus,
+                          midtransTransactionId: currentTransaction.transaction_id,
+                          paymentType: currentTransaction.payment_type,
+                          paidAt:
+                              paymentStatus === "PAID"
+                                  ? (order.paidAt ?? new Date())
+                                  : order.paidAt,
+                          refundedAmount,
+                      }
                     : {
-                        // Status change ignored (stale/out-of-order),
-                        // but transaction identity/refund audit data
-                        // can still be safely recorded.
-                        midtransTransactionId:
-                            currentTransaction.transaction_id,
-                        refundedAmount,
-                    },
+                          midtransTransactionId: currentTransaction.transaction_id,
+                          refundedAmount,
+                      },
             }),
         ]);
 
-        // 8. Rekonsiliasi akses Telegram — di luar transaction di
-        // atas (tidak pernah menahan koneksi DB sambil menunggu
-        // Telegram API), best-effort, dan tidak pernah menggagalkan
-        // response webhook ini.
+        logger.info("Midtrans webhook processed", {
+            event: "midtrans.webhook_processed",
+            requestId,
+            orderId: order.id,
+            status: finalOrderStatus,
+        });
+
+        // 8. Telegram entitlement reconciliation — best-effort, never
+        // fails this webhook response.
         if (ENTITLEMENT_SENSITIVE_STATUSES.includes(finalOrderStatus)) {
             await reconcileTelegramAccessForOrder(order.id);
         }
 
-        return NextResponse.json({
-            message: "Webhook berhasil diproses",
-        });
+        return NextResponse.json({ message: "Webhook berhasil diproses" });
     } catch (error) {
-        console.error("Midtrans webhook error:", error);
+        captureException(error, {
+            operation: "webhooks.midtrans",
+            requestId,
+            expected: false,
+        });
 
         return NextResponse.json(
-            {
-                message:
-                    "Gagal memproses webhook Midtrans",
-            },
-            {
-                status: 500,
-            },
+            { message: "Gagal memproses webhook Midtrans" },
+            { status: 500 },
         );
     }
 }

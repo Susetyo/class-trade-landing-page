@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 
 import { prisma } from "@/lib/prisma";
 import { isValidOrderId } from "@/lib/order-access";
@@ -9,6 +8,10 @@ import {
     getTelegramLinkTokenExpiry,
     hashLinkToken,
 } from "@/lib/telegram-linking";
+import { OrderIdBodySchema as RequestSchema } from "@/lib/schemas";
+import { checkRateLimit, RATE_LIMITS, rateLimitResponseInit } from "@/lib/rate-limit";
+import { getClientIp } from "@/lib/request-context";
+import { captureException } from "@/lib/error-monitoring";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,14 +20,10 @@ const NO_STORE_HEADERS = {
     "Cache-Control": "no-store",
 };
 
-// Minimal anti-spam guard: this project has no shared rate-limiting
-// infrastructure yet, so we simply refuse to mint a new token for the
-// same Order faster than this interval.
+// Domain-level guard (kept alongside the generic per-IP rate limiter
+// below): refuse to mint a new token for the same Order faster than
+// this interval, regardless of which IP asks.
 const MIN_REGENERATION_INTERVAL_MS = 5_000;
-
-const RequestSchema = z.object({
-    orderId: z.string().min(1).max(64),
-});
 
 type ErrorResponse = {
     message: string;
@@ -37,6 +36,18 @@ type LinkTokenResponse = {
 };
 
 export async function POST(request: Request) {
+    const rateLimit = await checkRateLimit({
+        key: `telegram.link:${getClientIp(request)}`,
+        ...RATE_LIMITS.TELEGRAM_ACTION,
+    });
+
+    if (!rateLimit.allowed) {
+        return NextResponse.json<ErrorResponse>(
+            { message: "Terlalu banyak permintaan. Silakan coba lagi sebentar." },
+            rateLimitResponseInit(rateLimit, NO_STORE_HEADERS),
+        );
+    }
+
     try {
         const json = await request.json().catch(() => null);
         const parsed = RequestSchema.safeParse(json);
@@ -147,7 +158,10 @@ export async function POST(request: Request) {
             { status: 201, headers: NO_STORE_HEADERS },
         );
     } catch (error) {
-        console.error("Create Telegram link token error:", error);
+        captureException(error, {
+            operation: "telegram.link_create",
+            expected: false,
+        });
 
         return NextResponse.json<ErrorResponse>(
             { message: "Gagal membuat tautan Telegram" },
