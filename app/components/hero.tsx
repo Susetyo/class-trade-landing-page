@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-const mentors = ["Ov Kafeinmatcha", "Frida Kucing Hoki", "AHS ADX"];
+const mentors = ["Ov Kafeinmatcha", "Frida Kucing Hoki", "AHS ADX", "lrainfx"];
 
 export function Hero() {
   return (

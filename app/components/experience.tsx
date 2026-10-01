@@ -1,4 +1,5 @@
 import Script from "next/script";
+import { MentorCarousel } from "./mentor-carousel";
 
 const mentors = [
     {
@@ -25,6 +26,14 @@ const mentors = [
         tiktokUrl: "https://www.tiktok.com/@banggendut13",
         uniqueId: "banggendut13",
     },
+    {
+        role: "Mentor",
+        name: "lrainfx",
+        description:
+            "Shares practical market insights and real-time trade breakdowns to help you sharpen your analysis and execution.",
+        tiktokUrl: "https://www.tiktok.com/@lrainfx_",
+        uniqueId: "lrainfx_",
+    },
 ];
 
 export function Experience() {
@@ -36,21 +45,14 @@ export function Experience() {
                     <div className="noise pointer-events-none absolute inset-0 opacity-10" />
 
                     <div className="relative">
-                        <p className="text-xs font-extrabold uppercase tracking-[0.22em] text-[#DDE7C8] sm:text-sm md:tracking-[0.24em]">
-                            Meet Your Mentors
-                        </p>
-
-                        <div
-                            className="-mx-5 mt-8 grid auto-cols-[86%] grid-flow-col items-start gap-4 overflow-x-auto px-5 pb-4 snap-x snap-mandatory scroll-smooth no-scrollbar sm:auto-cols-[72%] md:-mx-10 md:auto-cols-[48%] md:px-10 lg:mx-0 lg:grid-flow-row lg:grid-cols-3 lg:auto-cols-auto lg:overflow-visible lg:px-0 lg:pb-0"
-                            aria-label="Mentor TikTok carousel"
-                        >
+                        <MentorCarousel>
                             {mentors.map((mentor) => (
                                 <MentorTiktokCard
                                     key={mentor.uniqueId}
                                     mentor={mentor}
                                 />
                             ))}
-                        </div>
+                        </MentorCarousel>
                     </div>
                 </div>
             </div>
